@@ -1,0 +1,25 @@
+node_modules/
+dist/
+build/
+coverage/
+.turbo/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+playwright-report/
+test-results/
+.vite/
+
+# Secrets and local tooling
+infra/.env
+*.pem
+*.key
+secrets.*
+.claude/settings.local.json
+.mcp.json
+.opensource/
+.pnpm-store/
