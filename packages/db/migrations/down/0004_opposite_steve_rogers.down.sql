@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS "entry_tags";
+DROP TABLE IF EXISTS "tags";
+DROP TABLE IF EXISTS "frames";
+DROP TABLE IF EXISTS "teleports";

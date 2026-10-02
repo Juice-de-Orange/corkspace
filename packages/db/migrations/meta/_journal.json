@@ -1,0 +1,69 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1782655499485,
+      "tag": "0000_steep_lockjaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782670571247,
+      "tag": "0001_productive_lockjaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782671205528,
+      "tag": "0002_opposite_jasper_sitwell",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782747960124,
+      "tag": "0003_real_frightful_four",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782750572202,
+      "tag": "0004_opposite_steve_rogers",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782849218769,
+      "tag": "0005_dapper_hawkeye",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783175821278,
+      "tag": "0006_boards",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784387829694,
+      "tag": "0007_feedback_enums_fk",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784474229694,
+      "tag": "0008_english_background_ids",
+      "breakpoints": true
+    }
+  ]
+}
