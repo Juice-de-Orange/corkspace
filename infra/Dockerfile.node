@@ -1,0 +1,20 @@
+# Shared image for the Node services (api / worker / migrate). The runtime command is set
+# per-service in docker-compose; each runs its TypeScript entry via tsx, which is kept as a
+# PRODUCTION dependency because the workspace packages (@corkspace/db, @corkspace/shared) are consumed
+# as source. A self-contained `node dist` bundle is deferred — it would additionally drop
+# esbuild (pulled by tsx) but that is a non-exploitable moderate here (transform API, no dev
+# server), not worth reworking the live migrate/runtime for. See DECISIONS 2026-07-19.
+#
+# `--prod` prunes ALL devDependencies from the image — @testcontainers/postgresql→undici (the
+# only remaining HIGH advisories), vitest, playwright, drizzle-kit, tsup, biome, knip, turbo —
+# so the prod runtime ships only real runtime deps + tsx. `.dockerignore` keeps host
+# node_modules/dist out of the build context, so this is a clean, reproducible install.
+FROM node:22-alpine
+RUN corepack enable && corepack prepare pnpm@11.1.2 --activate
+WORKDIR /app
+
+COPY . .
+RUN pnpm install --frozen-lockfile --prod
+
+ENV NODE_ENV=production
+CMD ["node", "--version"]
