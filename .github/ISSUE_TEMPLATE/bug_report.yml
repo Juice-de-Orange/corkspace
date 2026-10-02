@@ -1,0 +1,49 @@
+name: Bug report
+description: Something does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Security problems go through private reporting instead
+        (Security → Report a vulnerability), never a public issue.
+        Please remove passwords, secrets, hostnames and personal content from anything you paste.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead? A screenshot helps.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Create a document entry
+        2. Zoom out to 10 %
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Version and environment
+      description: Commit (`git rev-parse --short HEAD`), browser and device, Docker or local dev.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - canvas (pan, zoom, rendering)
+        - entries and editor
+        - threads, drawing, frames, teleports
+        - dashboard, search, history
+        - sharing and accounts
+        - mobile / touch
+        - deployment
+        - docs
+    validations:
+      required: true
