@@ -18,7 +18,7 @@ and viewers or share a read-only link, and an admin keeps the instance in order.
   representations as they get small on screen. Minimap, position readout, and the board
   remembers where you were.
 - **Entries:** sticky notes in six colours, rich documents (TipTap: headings, lists, quotes,
-  code blocks, links, colour and highlight, lined or grid paper), checklists, images (incl. animated GIFs) and link cards
+  code blocks, links, `==highlight==`, lined or grid paper), checklists, images (incl. animated GIFs) and link cards
   with previews; YouTube and Vimeo embeds in sandboxed frames.
 - **Red threads** between entries with labels and arrowheads, **freehand drawing** (pen,
   marker, lines, arrows, rectangles, eraser) on entries and the board, **frames** that move
@@ -57,9 +57,11 @@ docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build
 Open <http://localhost:8080> and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`. There is no
 public sign-up: the admin creates accounts under **Admin → Users**.
 
-To see a filled board right away, load the synthetic demo content into your board:
+To see a filled board right away, load the synthetic demo content into your board. This one step
+runs on the host and needs Node 22 and pnpm in addition to Docker:
 
 ```bash
+pnpm install
 SEED_URL=http://localhost:8080 SEED_EMAIL=… SEED_PASSWORD=… pnpm db:seed-demo
 ```
 
