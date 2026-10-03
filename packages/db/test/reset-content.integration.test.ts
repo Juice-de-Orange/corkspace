@@ -33,6 +33,9 @@ describe('resetContent', () => {
   beforeAll(async () => {
     tdb = await startTestDb()
     pool = new Pool({ connectionString: tdb.url })
+    // Stopping the container right after pool.end() can hand 57P01 to a client that is still
+    // closing; without a listener pg-pool's re-emit becomes an uncaught exception (see migrate test).
+    pool.on('error', () => {})
 
     // Identity + tenancy (must SURVIVE the reset).
     await pool.query(
