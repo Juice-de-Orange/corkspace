@@ -487,3 +487,115 @@ test('delete an entry to trash and restore it from the dashboard', async ({ page
   await restoreBtn.click()
   await expect(entries).toHaveCount(start + 1) // back on the board
 })
+
+/** World position of an entry as the canvas renders it (inline left/top are world coordinates). */
+async function entryPos(page: Page, id: string): Promise<{ x: number; y: number }> {
+  return page.locator(`[data-entry-id="${id}"]`).evaluate((el) => {
+    const s = (el as HTMLElement).style
+    return { x: Number.parseFloat(s.left), y: Number.parseFloat(s.top) }
+  })
+}
+
+/** Create a link card with a short, unique, SSRF-blocked URL (the card then shows the bare URL, no
+ *  network involved) and return its persisted id. Found by its text: the shared board can hold
+ *  link cards of earlier tests. */
+async function createLinkCard(page: Page): Promise<string> {
+  const url = `https://127.0.0.1/${Math.floor(100 + Math.random() * 900)}`
+  await page.getByRole('button', { name: '+ Link' }).click()
+  await fillPrompt(page, url)
+  const card = page.locator('.entry-link', { hasText: url })
+  await expect(card).toBeVisible()
+  await page.waitForTimeout(500) // allow the create round-trip to swap the temp id for the real one
+  const id = await card.getAttribute('data-entry-id')
+  if (!id) {
+    throw new Error('link card has no id')
+  }
+  return id
+}
+
+/** The board path of the open board (`/b/<id>`) as an API prefix. */
+const boardApi = (page: Page): string => `/api/boards/${new URL(page.url()).pathname.split('/')[2]}`
+
+test('dragging a link card by the space beside its title moves the card, not to the origin', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name.startsWith('mobile'), 'touch interactions land in Phase 6')
+  await login(page)
+  const id = await createLinkCard(page)
+  const card = page.locator(`[data-entry-id="${id}"]`)
+  try {
+    const start = await entryPos(page, id)
+
+    // Press on the card just right of the title: the card's own drag starts (the target is the
+    // card, not the link), but Chromium also picks the adjacent anchor for a native link drag —
+    // which cancels the pointer mid-move unless the anchor opts out of dragging.
+    const a = await card.locator('a').boundingBox()
+    if (!a) {
+      throw new Error('link title not visible')
+    }
+    const px = a.x + a.width + 3
+    const py = a.y + a.height / 2
+    await page.mouse.move(px, py)
+    await page.mouse.down()
+    await page.mouse.move(px + 120, py + 80, { steps: 8 })
+    await page.mouse.up()
+
+    const moved = await entryPos(page, id)
+    expect(moved.x).toBeCloseTo(start.x + 120, 0)
+    expect(moved.y).toBeCloseTo(start.y + 80, 0)
+
+    await page.waitForTimeout(500) // allow the move to persist
+    await page.reload()
+    await expect(page.locator('.position-readout')).toBeVisible()
+    await expect(card).toBeVisible()
+    const reloaded = await entryPos(page, id)
+    expect(reloaded.x).toBeCloseTo(start.x + 120, 0)
+    expect(reloaded.y).toBeCloseTo(start.y + 80, 0)
+  } finally {
+    await page.request.delete(`${boardApi(page)}/entries/${id}`)
+  }
+})
+
+test('a cancelled pointer aborts an entry drag: back to the start, nothing saved', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name.startsWith('mobile'), 'touch interactions land in Phase 6')
+  await login(page)
+  const id = await createLinkCard(page)
+  const card = page.locator(`[data-entry-id="${id}"]`)
+  try {
+    const start = await entryPos(page, id)
+    const patches: string[] = []
+    page.on('request', (r) => {
+      if (r.method() === 'PATCH' && r.url().endsWith(`/entries/${id}`)) {
+        patches.push(r.url())
+      }
+    })
+
+    // Drag by the card's lower edge (below title and description), then let the browser take the
+    // pointer away mid-drag. A pointercancel carries no usable coordinates (0,0).
+    const box = await card.boundingBox()
+    if (!box) {
+      throw new Error('link card not visible')
+    }
+    const px = box.x + box.width / 2
+    const py = box.y + box.height - 8
+    await page.mouse.move(px, py)
+    await page.mouse.down()
+    await page.mouse.move(px + 120, py + 80, { steps: 8 })
+    expect((await entryPos(page, id)).x).toBeCloseTo(start.x + 120, 0) // the drag is live
+    await page.locator('.canvas-root').evaluate((root) => {
+      root.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 }))
+    })
+    await page.mouse.up()
+
+    expect(await entryPos(page, id)).toEqual(start)
+    await page.waitForTimeout(500)
+    expect(patches).toEqual([])
+    await page.reload()
+    await expect(card).toBeVisible()
+    expect(await entryPos(page, id)).toEqual(start)
+  } finally {
+    await page.request.delete(`${boardApi(page)}/entries/${id}`)
+  }
+})

@@ -587,6 +587,21 @@ export function usePointerInput(rootRef: RefObject<HTMLElement | null>): void {
       }
     }
 
+    // The browser took the pointer away (native drag-and-drop, a system gesture, a lost touch).
+    // A pointercancel carries no usable coordinates (0,0), so it must never commit a move: the
+    // entry goes back to where the drag started and nothing is saved. Other gestures end as on up.
+    const onPointerCancel = (e: PointerEvent) => {
+      if (drag) {
+        cancelEntryDrag()
+        if (root.hasPointerCapture(e.pointerId)) {
+          root.releasePointerCapture(e.pointerId)
+        }
+        pointers.delete(e.pointerId)
+        return
+      }
+      onPointerUp(e)
+    }
+
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
       const p = localPoint(e.clientX, e.clientY)
@@ -607,7 +622,7 @@ export function usePointerInput(rootRef: RefObject<HTMLElement | null>): void {
     root.addEventListener('pointerdown', onPointerDown)
     root.addEventListener('pointermove', onPointerMove)
     root.addEventListener('pointerup', onPointerUp)
-    root.addEventListener('pointercancel', onPointerUp)
+    root.addEventListener('pointercancel', onPointerCancel)
     root.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('keydown', onKeyDown)
 
@@ -615,7 +630,7 @@ export function usePointerInput(rootRef: RefObject<HTMLElement | null>): void {
       root.removeEventListener('pointerdown', onPointerDown)
       root.removeEventListener('pointermove', onPointerMove)
       root.removeEventListener('pointerup', onPointerUp)
-      root.removeEventListener('pointercancel', onPointerUp)
+      root.removeEventListener('pointercancel', onPointerCancel)
       root.removeEventListener('wheel', onWheel)
       window.removeEventListener('keydown', onKeyDown)
     }

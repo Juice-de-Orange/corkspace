@@ -112,6 +112,8 @@ export function LinkCard({ meta, innerRef }: { meta: EntryMeta; innerRef: Ref<HT
               target="_blank"
               rel="noreferrer"
               data-no-pan
+              // No native link drag: it would cancel the pointer and fight the card's own drag.
+              draggable={false}
               style={{
                 display: 'block',
                 fontWeight: 600,
