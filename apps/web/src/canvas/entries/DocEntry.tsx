@@ -228,7 +228,13 @@ function Toolbar({ editor }: { editor: Editor }) {
 }
 
 function DocEditor({ initial, onCommit }: { initial: Json; onCommit: (json: Json) => void }) {
-  const editor = useEditor({ extensions: docExtensions, content: initial, autofocus: 'end' })
+  const editor = useEditor({
+    extensions: docExtensions,
+    content: initial,
+    autofocus: 'end',
+    // tiptap 3 no longer re-renders on every transaction; the toolbar's active states rely on it.
+    shouldRerenderOnTransaction: true,
+  })
   // Stable handler: bind blur ONCE per editor (a fresh onCommit each render must not re-bind).
   const commitRef = useRef(onCommit)
   commitRef.current = onCommit
