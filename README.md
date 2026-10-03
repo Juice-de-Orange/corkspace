@@ -118,6 +118,10 @@ Built in June and July 2026 and in use on a small self-hosted instance since. Th
 above is complete and covered by the test suites; open ideas and known rough edges are in the
 [issues](https://github.com/Juice-de-Orange/corkspace/issues).
 
+The release was checked by hand from a fresh clone against the compose stack, but only at
+`http://localhost` and in Chromium: operation behind a TLS reverse proxy, other browsers and the
+upgrade procedure in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) were not part of those checks.
+
 ## Built with Claude Code
 
 Corkspace was built by [Claude Code](https://claude.com/claude-code) working through a phased

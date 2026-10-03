@@ -173,13 +173,17 @@ Copy the backup directory off the host as well.
 
 ```bash
 bash scripts/restore.sh ~/corkspace-backups/db-20260101-033000.dump ~/corkspace-backups/assets-20260101-033000.tgz
-docker compose -f infra/docker-compose.yml --env-file infra/.env restart api worker
 ```
 
 **Destructive.** `restore.sh` runs `pg_restore --clean --if-exists --no-owner` into the running
-database and replaces the entire contents of the assets volume. It uses the same `ENV_FILE`,
-`DB_CONTAINER` and `ASSETS_VOLUME` defaults as the backup script. Rehearse a restore on a test
-stack before you need it.
+database and replaces the entire contents of the assets volume. Before it changes anything it
+checks that both files exist, that `pg_restore` can read the dump and that the tarball lists; if
+not, it stops with "nothing was changed". It then stops the `api` and `worker` containers, restores,
+and starts them again (also when the restore fails half-way), so the instance answers 502 for the
+duration. It uses the same `ENV_FILE`, `DB_CONTAINER` and `ASSETS_VOLUME` defaults as the backup
+script, plus `API_CONTAINER` (`corkspace-api-1`) and `WORKER_CONTAINER` (`corkspace-worker-1`); if
+your containers have other names and you do not set these, restart `api` and `worker` yourself
+afterwards. Rehearse a restore on a test stack before you need it.
 
 ## 7. Upgrading
 
@@ -201,8 +205,13 @@ back, restore the backup taken before the upgrade.
 ## 8. Operations notes
 
 - Logs: `docker compose -f infra/docker-compose.yml logs -f api worker`.
-- Health: `GET /api/health` returns `200 {"status":"ok","db":"up"}` or `503` when the database is
-  unreachable; the `api` container healthcheck uses it.
+- Health: `GET /api/health` returns `200 {"status":"ok","db":"up"}` or
+  `503 {"status":"degraded","db":"down"}` when the database is unreachable; the `api` container
+  healthcheck uses it.
+- If Postgres restarts or is briefly unreachable, `api` and `worker` keep running: the api answers
+  503 on `/api/health` and cannot serve board data, the worker logs `queue unavailable, retrying`
+  every few seconds, and both reconnect on their own. Only at start-up do they need the database:
+  started without it, they exit and Docker restarts them until it is there.
 - The internal nginx re-resolves the `api` container on every request, so restarting `api` does not
   require restarting `web`.
 - Login is rate-limited in production (Better Auth).
