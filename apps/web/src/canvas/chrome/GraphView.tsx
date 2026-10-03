@@ -139,6 +139,7 @@ export default function GraphView({ graph, width, height, onPick, onClose }: Gra
             const pick = (): void =>
               onPick({ x: n.boardX, y: n.boardY, width: n.boardW, height: n.boardH })
             return (
+              // biome-ignore lint/a11y/useSemanticElements: SVG has no <button>; the circle carries role, focus and Enter/Space handling itself.
               <circle
                 key={n.id}
                 data-graph-node={n.id}
