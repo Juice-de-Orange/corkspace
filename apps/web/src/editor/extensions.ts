@@ -1,7 +1,7 @@
-import Color from '@tiptap/extension-color'
+import { Color } from '@tiptap/extension-color'
 import Highlight from '@tiptap/extension-highlight'
 import Link from '@tiptap/extension-link'
-import TextStyle from '@tiptap/extension-text-style'
+import { TextStyle } from '@tiptap/extension-text-style'
 import Typography from '@tiptap/extension-typography'
 import Underline from '@tiptap/extension-underline'
 import type { Extensions } from '@tiptap/react'
@@ -13,7 +13,8 @@ import { LinkEmbed } from './link-embed'
  *  render identically. `entry:` links are internal jumps (handled in the preview, no thread);
  *  `linkEmbed` is an inline link-preview card. (Tables + code highlighting are a later enrichment.) */
 export const docExtensions: Extensions = [
-  StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+  // StarterKit 3 bundles Link and Underline; they are configured explicitly below instead.
+  StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
   Underline,
   Link.configure({ openOnClick: false, autolink: true, protocols: ['entry'] }),
   Highlight,
