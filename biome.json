@@ -14,7 +14,7 @@
       "!**/.turbo",
       "!**/playwright-report",
       "!**/test-results",
-      "!**/migrations/**"
+      "!**/migrations"
     ]
   },
   "formatter": {

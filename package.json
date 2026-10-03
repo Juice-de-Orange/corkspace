@@ -28,7 +28,7 @@
     "db:seed-demo": "pnpm --filter @corkspace/api run seed:demo"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.1.2",
+    "@biomejs/biome": "2.5.14",
     "knip": "^6.24.0",
     "turbo": "^2.3.3",
     "typescript": "^5.7.3"
