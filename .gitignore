@@ -23,3 +23,5 @@ secrets.*
 .mcp.json
 .opensource/
 .pnpm-store/
+# Written into the checkout by turbo on every run
+/AGENTS.md

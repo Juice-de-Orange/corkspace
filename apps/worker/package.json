@@ -13,9 +13,9 @@
   "dependencies": {
     "@corkspace/db": "workspace:*",
     "@corkspace/shared": "workspace:*",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "^0.45.3",
     "sharp": "^0.35.4",
-    "tsx": "^4.19.2"
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

@@ -1,11 +1,9 @@
 import { type FormEvent, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Field } from '../components/ui'
 import { useT } from '../i18n'
 import { signIn } from '../lib/auth-client'
 
 export function Login() {
-  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -22,7 +20,10 @@ export function Login() {
       setError(res.error.message ?? t('auth.failed'))
       return
     }
-    navigate('/')
+    // A full navigation, not navigate('/'): a visitor who arrived via the redirect from `/`
+    // still has "no session" in the client-side session store, so the protected route bounced
+    // them straight back to an empty login form before the session refetch landed.
+    window.location.assign('/')
   }
 
   return (

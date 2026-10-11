@@ -120,3 +120,55 @@ test('inline link embed: SSRF-blocked URL degrades to a bare card', async ({ pag
   await expect(embed).toBeVisible()
   await expect(embed).toContainText('127.0.0.1')
 })
+
+test('document editor: Enter starts a paragraph; list and quote buttons work', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name.startsWith('mobile'), 'editor is a desktop concern')
+  // Any exception in the editor (e.g. two copies of prosemirror-model in the bundle) must fail
+  // the test even if the DOM assertions happened to pass.
+  const pageErrors: string[] = []
+  page.on('pageerror', (e) => pageErrors.push(e.message))
+  await login(page)
+  const box = await page.locator('.canvas-root').boundingBox()
+  if (!box) {
+    throw new Error('canvas not visible')
+  }
+  const cx = box.x + box.width / 2
+  const cy = box.y + box.height / 2
+  await page.getByRole('button', { name: '+ Dok' }).click()
+  const doc = page.locator('.entry-doc').last()
+  await expect(doc).toBeVisible()
+  await page.mouse.move(cx, cy)
+  await page.mouse.down()
+  await page.mouse.move(cx + box.width * 0.28, cy + box.height * 0.22, { steps: 6 })
+  await page.mouse.up()
+  await doc.dblclick()
+  const editor = doc.locator('.ProseMirror')
+  await expect(editor).toBeVisible()
+  await editor.click()
+
+  await page.keyboard.type('first')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('second')
+  await expect(editor.locator('p')).toHaveText(['first', 'second'])
+
+  await page.keyboard.press('Enter')
+  await doc.locator('button', { hasText: /^•$/ }).click()
+  await page.keyboard.type('item')
+  await expect(editor.locator('ul > li')).toHaveText(['item'])
+
+  // Leave the list (Enter on an empty item), then a numbered list and a quote.
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Enter')
+  await doc.locator('button', { hasText: /^1\.$/ }).click()
+  await page.keyboard.type('one')
+  await expect(editor.locator('ol > li')).toHaveText(['one'])
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Enter')
+  await doc.locator('button', { hasText: /^❝$/ }).click()
+  await page.keyboard.type('quoted')
+  await expect(editor.locator('blockquote')).toHaveText('quoted')
+
+  expect(pageErrors).toEqual([])
+})
