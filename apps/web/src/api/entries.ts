@@ -1,6 +1,7 @@
 import type { CreateEntryInput, PatchEntryInput } from '@corkspace/shared'
 import type { EntryMeta } from '../canvas/state/entry-store'
 import { boardApi } from './board-context'
+import { queueEntryPatch } from './entry-save-queue'
 
 interface EntryMetaResponse {
   id: string
@@ -61,15 +62,18 @@ export async function apiCreateEntry(input: CreateEntryInput): Promise<EntryMeta
   )
 }
 
-export async function apiPatchEntry(id: string, patch: PatchEntryInput): Promise<EntryMeta> {
-  return toMeta(
-    await asJson<EntryMetaResponse>(
-      await fetch(boardApi(`/entries/${id}`), {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(patch),
-      }),
+/** Save a change to an entry. Queued per entry, so the newest change always reaches the server last. */
+export function apiPatchEntry(id: string, patch: PatchEntryInput): Promise<EntryMeta> {
+  return queueEntryPatch(id, patch, async (body) =>
+    toMeta(
+      await asJson<EntryMetaResponse>(
+        await fetch(boardApi(`/entries/${id}`), {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        }),
+      ),
     ),
   )
 }

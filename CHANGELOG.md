@@ -17,6 +17,12 @@ All notable changes to this project are documented here. The format follows
 
 - Creating an entry with an `imageAssetId` that does not exist or was uploaded to another board is
   rejected with 400 (it failed with a database error, or attached another board's image) (#5).
+- Quick successive edits of the same entry (for example adding a checklist item and ticking it
+  right away) could be saved out of order, so a reload showed the older state. Saves of one entry
+  are now sent one after another, newest last (#6).
+- Quick successive edits of the same entry (for example adding a checklist item and ticking it
+  right away) could be saved out of order, so a reload showed the older state. Saves of one entry
+  are now sent one after another, newest last (#6).
 - Jump-to flights (search results, internal links, teleports) stopped after their first frame when
   the board was idle: the camera reaction set another atom inside signia's reaction cycle, which
   throws. The flag is now set in a microtask; a regression test covers the idle case.

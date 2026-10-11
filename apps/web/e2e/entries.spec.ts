@@ -124,6 +124,45 @@ test('create a checklist, add + check an item, persists across reload', async ({
   await expect(reloaded.locator('input[type="checkbox"]').first()).toBeChecked()
 })
 
+test('overlapping saves of one entry keep the latest state (#6)', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.startsWith('mobile'), 'touch interactions land in Phase 6')
+  await login(page)
+  // Find the new checklist by the id the server returns (independent of what the shared board holds).
+  const created = page.waitForResponse(
+    (r) => r.request().method() === 'POST' && /\/entries$/.test(new URL(r.url()).pathname),
+  )
+  await page.getByRole('button', { name: '+ Liste' }).click()
+  const { id } = (await (await created).json()) as { id: string }
+  const list = page.locator(`[data-entry-id="${id}"]`)
+  await expect(list).toBeVisible()
+
+  // Hold the FIRST save of this entry back, so the second save would overtake it on the wire.
+  let patches = 0
+  await page.route(new RegExp(`/entries/${id}$`), async (route) => {
+    if (route.request().method() === 'PATCH' && ++patches === 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+    }
+    await route.continue()
+  })
+  const settled = page.waitForResponse(
+    (r) => r.request().method() === 'PATCH' && new URL(r.url()).pathname.endsWith(id),
+  )
+  // dispatchEvent: other checklists from earlier runs may sit on top of this one at the centre.
+  await list.getByRole('button', { name: '+ Punkt' }).dispatchEvent('click') // save 1: unchecked
+  const box = list.locator('input[type="checkbox"]').first()
+  await expect(box).toBeVisible()
+  await box.dispatchEvent('click') // save 2: checked
+  await expect(box).toBeChecked()
+  await settled
+  await expect.poll(() => patches).toBe(2)
+  await page.waitForTimeout(2500) // both saves have reached the server
+
+  await page.reload()
+  const reloaded = page.locator(`[data-entry-id="${id}"] input[type="checkbox"]`)
+  await expect(reloaded).toHaveCount(1)
+  await expect(reloaded).toBeChecked()
+})
+
 test('create a link card from a URL (SSRF-blocked target degrades gracefully)', async ({
   page,
 }, testInfo) => {
