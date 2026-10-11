@@ -9,10 +9,16 @@ import type { PatchEntryInput } from '@corkspace/shared'
  * be the one kept. Saves queued behind an in-flight one are merged into a single request (the later
  * value of a field wins), so a burst of edits costs at most two round trips. Different entries still
  * save in parallel.
+ *
+ * When the page is hidden or closed (#9), every save is sent with `keepalive` so the browser
+ * finishes it after the page is gone, and on `pagehide` the queued saves are sent at once instead of
+ * waiting for the in-flight one: the page does not live long enough to wait. Only in that moment can
+ * two saves of one entry still reach the server out of order, if the in-flight one is still being
+ * processed there.
  */
 
-/** Sends one PATCH. */
-export type SendPatch<T> = (patch: PatchEntryInput) => Promise<T>
+/** Sends one PATCH; `keepalive` asks the browser to complete it even if the page is unloading. */
+export type SendPatch<T> = (patch: PatchEntryInput, keepalive: boolean) => Promise<T>
 
 interface Job {
   patch: PatchEntryInput
@@ -26,6 +32,7 @@ interface Slot {
 }
 
 const slots = new Map<string, Slot>()
+let pageHidden = false
 
 /** Merge a later patch into an earlier one: later defined fields win, a version is kept if asked. */
 function mergePatches(earlier: PatchEntryInput, later: PatchEntryInput): PatchEntryInput {
@@ -41,9 +48,9 @@ function mergePatches(earlier: PatchEntryInput, later: PatchEntryInput): PatchEn
   return merged as PatchEntryInput
 }
 
-async function run(job: Job): Promise<void> {
+async function run(job: Job, keepalive: boolean): Promise<void> {
   try {
-    const result = await job.send(job.patch)
+    const result = await job.send(job.patch, keepalive)
     for (const w of job.waiters) {
       w.resolve(result)
     }
@@ -59,7 +66,7 @@ async function drain(id: string, slot: Slot): Promise<void> {
   while (slot.next) {
     const job = slot.next
     slot.next = null
-    await run(job)
+    await run(job, pageHidden)
   }
   slot.busy = false
   slots.delete(id)
@@ -89,4 +96,20 @@ export function queueEntryPatch<T>(
       void drain(id, target)
     }
   })
+}
+
+/** While the page is hidden or closing, every save is sent with `keepalive`. */
+export function setPageHidden(hidden: boolean): void {
+  pageHidden = hidden
+}
+
+/** The page is closing: send the saves still waiting behind an in-flight one right away. */
+export function sendQueuedSavesNow(): void {
+  for (const slot of slots.values()) {
+    const job = slot.next
+    if (job) {
+      slot.next = null
+      void run(job, true)
+    }
+  }
 }

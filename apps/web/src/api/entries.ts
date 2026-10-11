@@ -62,20 +62,26 @@ export async function apiCreateEntry(input: CreateEntryInput): Promise<EntryMeta
   )
 }
 
+// Browsers cap the bodies of all in-flight keepalive requests at 64 KiB together; a larger save is
+// sent as a normal request (it still completes while the page is only hidden, not when it closes).
+const KEEPALIVE_MAX_BYTES = 60_000
+
 /** Save a change to an entry. Queued per entry, so the newest change always reaches the server last. */
 export function apiPatchEntry(id: string, patch: PatchEntryInput): Promise<EntryMeta> {
-  return queueEntryPatch(id, patch, async (body) =>
-    toMeta(
+  return queueEntryPatch(id, patch, async (body, keepalive) => {
+    const json = JSON.stringify(body)
+    return toMeta(
       await asJson<EntryMetaResponse>(
         await fetch(boardApi(`/entries/${id}`), {
           method: 'PATCH',
           credentials: 'include',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(body),
+          body: json,
+          keepalive: keepalive && new TextEncoder().encode(json).length <= KEEPALIVE_MAX_BYTES,
         }),
       ),
-    ),
-  )
+    )
+  })
 }
 
 export async function apiDuplicateEntry(id: string): Promise<EntryMeta> {

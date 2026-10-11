@@ -5,6 +5,7 @@ import { apiGetContent } from '../../api/entries'
 import { updateEntryContentCommand } from '../../commands/entry-commands'
 import { history } from '../../history/history'
 import { useT } from '../../i18n'
+import { onPageHide } from '../../lib/page-hide'
 import { editingEntryIdAtom, setEditing } from '../state/editor-state'
 import { type EntryMeta, entryContentRevAtom, recentlyCreatedIds } from '../state/entry-store'
 
@@ -120,14 +121,31 @@ export function StickyEntry({
     }
   }, [meta.id])
 
+  // Closing or hiding the tab fires no blur: save the text typed so far, keep the editor open.
+  useEffect(() => {
+    if (!editing) {
+      return
+    }
+    return onPageHide(() => {
+      const val = textareaRef.current?.value
+      if (loadedRef.current && typeof val === 'string' && val !== textRef.current) {
+        const prev = { text: textRef.current }
+        textRef.current = val
+        setText(val)
+        stickyTextCache.delete(meta.id)
+        void history.execute(updateEntryContentCommand(meta.id, prev, { text: val }))
+      }
+    })
+  }, [editing, meta.id])
+
   function commit(value: string): void {
     setEditing(null)
     // Content-wipe guard: never persist before the real content has loaded.
     if (!loadedRef.current) {
       return
     }
-    if (value !== text) {
-      const prev = { text }
+    if (value !== textRef.current) {
+      const prev = { text: textRef.current }
       setText(value)
       stickyTextCache.set(meta.id, { rev: contentRev, text: value }) // keep the cache fresh
       void history.execute(updateEntryContentCommand(meta.id, prev, { text: value }))

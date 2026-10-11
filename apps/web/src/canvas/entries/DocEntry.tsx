@@ -11,6 +11,7 @@ import { updateEntryContentCommand } from '../../commands/entry-commands'
 import { docExtensions, EMPTY_DOC, sanitizeDocHtml } from '../../editor/extensions'
 import { history } from '../../history/history'
 import { dateLocale, useT } from '../../i18n'
+import { onPageHide } from '../../lib/page-hide'
 import { flyTo } from '../runtime/fly-to'
 import { viewportAtom } from '../state/camera-store'
 import { editingEntryIdAtom, setEditing } from '../state/editor-state'
@@ -227,7 +228,15 @@ function Toolbar({ editor }: { editor: Editor }) {
   )
 }
 
-function DocEditor({ initial, onCommit }: { initial: Json; onCommit: (json: Json) => void }) {
+function DocEditor({
+  initial,
+  onCommit,
+  onDraft,
+}: {
+  initial: Json
+  onCommit: (json: Json) => void
+  onDraft: (json: Json) => void
+}) {
   const editor = useEditor({
     extensions: docExtensions,
     content: initial,
@@ -238,6 +247,8 @@ function DocEditor({ initial, onCommit }: { initial: Json; onCommit: (json: Json
   // Stable handler: bind blur ONCE per editor (a fresh onCommit each render must not re-bind).
   const commitRef = useRef(onCommit)
   commitRef.current = onCommit
+  const draftRef = useRef(onDraft)
+  draftRef.current = onDraft
 
   useEffect(() => {
     if (!editor) {
@@ -245,8 +256,11 @@ function DocEditor({ initial, onCommit }: { initial: Json; onCommit: (json: Json
     }
     const handler = () => commitRef.current(editor.getJSON() as Json)
     editor.on('blur', handler)
+    // Closing or hiding the tab fires no blur: save the text typed so far, keep the editor open.
+    const offPageHide = onPageHide(() => draftRef.current(editor.getJSON() as Json))
     return () => {
       editor.off('blur', handler)
+      offPageHide()
     }
   }, [editor])
 
@@ -304,8 +318,8 @@ export function DocEntry({ meta, innerRef }: { meta: EntryMeta; innerRef: Ref<HT
     }
   }, [meta.id, contentRev])
 
-  function commit(json: Json): void {
-    setEditing(null)
+  /** Persist `json` if it changed. Also used for the draft saved when the page is hidden. */
+  function save(json: Json): void {
     // Content-wipe guard + dirty check (the latter also blocks the double blur on editor teardown).
     if (!loadedRef.current) {
       return
@@ -316,8 +330,14 @@ export function DocEntry({ meta, innerRef }: { meta: EntryMeta; innerRef: Ref<HT
     }
     const prev = docRef.current
     lastSavedRef.current = s
+    docRef.current = json
     setDoc(json)
     void history.execute(updateEntryContentCommand(meta.id, { doc: prev }, { doc: json }))
+  }
+
+  function commit(json: Json): void {
+    setEditing(null)
+    save(json)
   }
 
   return (
@@ -342,7 +362,11 @@ export function DocEntry({ meta, innerRef }: { meta: EntryMeta; innerRef: Ref<HT
         overflow: 'auto',
       }}
     >
-      {editing ? <DocEditor initial={doc} onCommit={commit} /> : <DocPreview doc={doc} />}
+      {editing ? (
+        <DocEditor initial={doc} onCommit={commit} onDraft={save} />
+      ) : (
+        <DocPreview doc={doc} />
+      )}
     </div>
   )
 }

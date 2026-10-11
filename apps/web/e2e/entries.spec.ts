@@ -201,6 +201,62 @@ test('create a rich document, type text, persists across reload', async ({ page 
   await expect(page.getByText('Mein Dokument').first()).toBeVisible()
 })
 
+/** Click a create button and return the id the server gave the new entry. */
+async function createAndGetId(page: Page, button: string): Promise<string> {
+  const created = page.waitForResponse(
+    (r) => r.request().method() === 'POST' && /\/entries$/.test(new URL(r.url()).pathname),
+  )
+  await page.getByRole('button', { name: button }).click()
+  return ((await (await created).json()) as { id: string }).id
+}
+
+test('text typed into an open document survives a reload without blur (#9)', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name.startsWith('mobile'), 'touch editing lands in Phase 6')
+  await login(page)
+  const id = await createAndGetId(page, '+ Dok')
+  const doc = page.locator(`[data-entry-id="${id}"]`)
+  await doc.dblclick()
+  const editor = doc.locator('.ProseMirror')
+  await expect(editor).toBeVisible()
+  await editor.click()
+  const text = `Unsaved draft ${Date.now()}`
+  await page.keyboard.type(text)
+  // Hiding the tab saves the draft but leaves the editor open with its text and cursor.
+  const draftSaved = page.waitForResponse(
+    (r) => r.request().method() === 'PATCH' && new URL(r.url()).pathname.endsWith(id),
+  )
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' })
+    document.dispatchEvent(new Event('visibilitychange'))
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await draftSaved
+  await expect(editor).toBeVisible()
+  await page.keyboard.type(' and more')
+  // No blur, no wait: the page goes away while the editor is still open.
+  await page.reload()
+  await expect(page.locator(`[data-entry-id="${id}"]`)).toContainText(`${text} and more`)
+})
+
+test('text typed into an open sticky survives a reload without blur (#9)', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name.startsWith('mobile'), 'touch editing lands in Phase 6')
+  await login(page)
+  const id = await createAndGetId(page, '+ Notiz')
+  const sticky = page.locator(`[data-entry-id="${id}"]`)
+  await sticky.dblclick()
+  const textarea = sticky.locator('textarea')
+  await expect(textarea).toBeFocused()
+  const text = `Sticky draft ${Date.now()}`
+  await page.keyboard.type(text)
+  await page.reload()
+  await expect(page.locator(`[data-entry-id="${id}"]`)).toContainText(text)
+})
+
 test('undo/redo and Ctrl+C/V duplicate via the command stack', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.startsWith('mobile'), 'keyboard shortcuts are a desktop concern')
   await login(page)

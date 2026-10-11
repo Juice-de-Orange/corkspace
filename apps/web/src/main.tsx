@@ -10,10 +10,12 @@ import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import './index.css'
 import { initLang } from './i18n'
+import { installPageHideSave } from './lib/page-hide'
 import { initTheme } from './lib/theme'
 
 initLang()
 initTheme()
+installPageHideSave()
 
 const root = document.getElementById('root')
 if (!root) {
