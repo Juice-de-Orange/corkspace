@@ -9,7 +9,13 @@ import { expect, type Page } from '@playwright/test'
 export async function resetCamera(page: Page): Promise<void> {
   await page.waitForTimeout(700) // let restore-last-position + its debounced save settle first
   await page.request.put('/api/me/camera', { data: { x: 0, y: 0, zoom: 1 } })
+  // Wait for the board's entries as well: a test that acts before they are loaded diffs against an
+  // empty board and creates entries with z-index 1, underneath what earlier tests left there.
+  const entriesLoaded = page.waitForResponse(
+    (r) => r.request().method() === 'GET' && /\/entries$/.test(new URL(r.url()).pathname),
+  )
   await page.reload()
+  await entriesLoaded
   await expect(page.locator('.position-readout')).toBeVisible()
   await page.waitForTimeout(300) // let the canvas runtime (pointer handlers) attach after reload
 }
