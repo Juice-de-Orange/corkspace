@@ -1,5 +1,5 @@
 import type { Database } from '@corkspace/db'
-import { entries, entryTags, entryVersions } from '@corkspace/db/schema'
+import { assets, entries, entryTags, entryVersions } from '@corkspace/db/schema'
 import {
   type CreateEntryInput,
   entrySearchText,
@@ -82,12 +82,27 @@ export async function getEntriesContent(db: Database, access: BoardAccess, ids: 
     .where(and(inArray(entries.id, ids), boardVisibilityWhere(access)))
 }
 
+/** Whether `assetId` exists and was uploaded to `boardId` (assets are board-scoped). */
+async function assetOnBoard(db: Database, boardId: string, assetId: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: assets.id })
+    .from(assets)
+    .where(and(eq(assets.id, assetId), eq(assets.boardId, boardId)))
+    .limit(1)
+  return rows.length > 0
+}
+
+/** Insert an entry. Returns null when `imageAssetId` is unknown or belongs to another board
+ *  (caller returns 400), so an entry can never point at a foreign board's asset. */
 export async function createEntry(
   db: Database,
   boardId: string,
   user: SessionUser,
   input: CreateEntryInput,
-) {
+): Promise<EntryMetaRow | null> {
+  if (input.imageAssetId && !(await assetOnBoard(db, boardId, input.imageAssetId))) {
+    return null
+  }
   const searchText = entrySearchText(input.type, input.content)
   const rows = await db
     .insert(entries)
@@ -109,7 +124,7 @@ export async function createEntry(
       updatedBy: user.id,
     })
     .returning(META)
-  return rows[0]
+  return rows[0] ?? null
 }
 
 export type PatchResult =

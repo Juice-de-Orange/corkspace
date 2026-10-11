@@ -1,5 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { adminCreds, createTestApp, login, type TestApp, viewerCreds } from './helpers/app'
+import {
+  adminCreds,
+  createTestApp,
+  createUserAccount,
+  login,
+  type TestApp,
+  viewerCreds,
+} from './helpers/app'
 
 // A real 1x1 transparent PNG.
 const PNG_1x1 = Buffer.from(
@@ -107,5 +114,57 @@ describe('assets — upload, from-url, serve, RBAC + visibility', () => {
       headers: { cookie: admin },
     })
     expect(res.status).toBe(404)
+  })
+
+  describe('image entries reference only assets of their own board (#5)', () => {
+    const createImage = (cookie: string, boardId: string, imageAssetId: string) =>
+      ctx.app.request(`/api/boards/${boardId}/entries`, {
+        method: 'POST',
+        headers: { cookie, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          type: 'image',
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 200,
+          content: {},
+          imageAssetId,
+        }),
+      })
+
+    it('accepts an asset uploaded to the same board', async () => {
+      const res = await createImage(admin, ctx.adminBoardId, assetId)
+      expect(res.status).toBe(201)
+      expect(((await res.json()) as { imageAssetId: string }).imageAssetId).toBe(assetId)
+    })
+
+    it('rejects an asset id that does not exist (400, not a foreign-key 500)', async () => {
+      const res = await createImage(admin, ctx.adminBoardId, '00000000-0000-0000-0000-000000000000')
+      expect(res.status).toBe(400)
+    })
+
+    it("rejects another board's asset (400) and creates no entry", async () => {
+      const other = { email: 'other-owner@example.com', password: 'other-password-123', name: 'O' }
+      const { boardId: otherBoard } = await createUserAccount(ctx.testDb.db, other)
+      const otherCookie = await login(ctx.app, other.email, other.password)
+      const up = await ctx.app.request(`/api/boards/${otherBoard}/assets`, {
+        method: 'POST',
+        headers: { cookie: otherCookie },
+        body: uploadForm(PNG_1x1, 'b.png', 'image/png'),
+      })
+      expect(up.status).toBe(201)
+      const foreignAsset = ((await up.json()) as { id: string }).id
+
+      const before = await ctx.app.request(`/api/boards/${ctx.adminBoardId}/entries`, {
+        headers: { cookie: admin },
+      })
+      const countBefore = ((await before.json()) as unknown[]).length
+      const res = await createImage(admin, ctx.adminBoardId, foreignAsset)
+      expect(res.status).toBe(400)
+      const after = await ctx.app.request(`/api/boards/${ctx.adminBoardId}/entries`, {
+        headers: { cookie: admin },
+      })
+      expect(((await after.json()) as unknown[]).length).toBe(countBefore)
+    })
   })
 })

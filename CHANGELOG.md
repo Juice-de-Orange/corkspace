@@ -15,6 +15,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Creating an entry with an `imageAssetId` that does not exist or was uploaded to another board is
+  rejected with 400 (it failed with a database error, or attached another board's image) (#5).
 - Jump-to flights (search results, internal links, teleports) stopped after their first frame when
   the board was idle: the camera reaction set another atom inside signia's reaction cycle, which
   throws. The flag is now set in a microtask; a regression test covers the idle case.
