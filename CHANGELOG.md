@@ -38,15 +38,16 @@ All notable changes to this project are documented here. The format follows
 - Erasing a stroke right after drawing it, before its save had completed, brought it back once the
   save finished (and the server kept it). It now stays gone and is deleted on the server. Undoing
   an erase and then the drawing also removes the stroke again instead of leaving a copy (#7).
-- Quick successive edits of the same entry (for example adding a checklist item and ticking it
-  right away) could be saved out of order, so a reload showed the older state. Saves of one entry
-  are now sent one after another, newest last (#6).
-- Text typed into an open document, sticky note or checklist item was lost when the tab was closed,
-  reloaded or hidden before the editor lost focus. It is now saved at that moment (with `keepalive`,
-  so the request completes after the page is gone); the editor stays open (#9).
-- Erasing a stroke right after drawing it, before its save had completed, brought it back once the
-  save finished (and the server kept it). It now stays gone and is deleted on the server. Undoing
-  an erase and then the drawing also removes the stroke again instead of leaving a copy (#7).
+- The sign-in rate limit is kept per client address. Better Auth read `X-Forwarded-For`, which a
+  visitor can forge (fresh attempts per forged value), and behind a reverse proxy the chain had two
+  entries, so it found no address and all visitors shared one bucket: a few failed sign-ins locked
+  everyone out for a few seconds. nginx now resolves the client behind `TRUSTED_PROXIES` from
+  `REAL_IP_HEADER` and passes it as `X-Real-IP`, the only header the api uses for this.
+- `infra/.env` (database password, auth secret, admin password) was copied into the api, worker
+  and migrate images, because `.dockerignore` excluded env files only at the top level. Env files
+  are now kept out of the build context everywhere. Images built before contain the file: rebuild
+  them and delete the old ones (`docker image prune`), and treat the secrets as exposed if such an
+  image ever left the host.
 - Jump-to flights (search results, internal links, teleports) stopped after their first frame when
   the board was idle: the camera reaction set another atom inside signia's reaction cycle, which
   throws. The flag is now set in a microtask; a regression test covers the idle case.

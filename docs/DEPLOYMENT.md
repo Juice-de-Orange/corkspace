@@ -52,6 +52,8 @@ account). It never overwrites an existing `infra/.env`.
 | `COMPOSE_PROJECT_NAME` | no | Compose project name, default `corkspace` (from the compose file). It prefixes container, volume and network names; the backup scripts follow it. It applies to the `-f infra/docker-compose.yml` commands below; `docker compose` from the repository root (`compose.yaml`) always uses `corkspace`. |
 | `CORKSPACE_VERSION` | no | Tag of the GHCR images to pull, default `latest` (e.g. `0.2.0` to pin a release). |
 | `WEB_PORT` | no | Host port of the `web` service, default 8080. |
+| `TRUSTED_PROXIES` | no | Addresses/CIDRs (space or comma separated) allowed to tell the `web` nginx the client address; default loopback and the private ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`). `none` trusts nobody. See §3. |
+| `REAL_IP_HEADER` | no | Header those proxies put the client address in, default `X-Forwarded-For`; `CF-Connecting-IP` behind a Cloudflare Tunnel. |
 
 `DATABASE_URL` is composed automatically inside the stack; set it only when you run the api or
 worker outside Compose. `API_PORT`, `ASSET_DIR` and `NODE_ENV` are fixed by the compose file. The
@@ -88,6 +90,18 @@ Point the proxy at `http://localhost:${WEB_PORT}`. Requirements:
 - Forward `Host`, `X-Forwarded-For` and `X-Forwarded-Proto`.
 - If a CDN sits in front, do not cache `index.html`; everything under `/static/` is content-hashed
   and safe to cache forever.
+
+**Client address and the sign-in limit.** Sign-in is limited to 3 attempts per 10 seconds per client
+address. The `web` nginx works out that address and passes it to the api as `X-Real-IP` (always
+overwritten, so a visitor cannot pick it). It takes the address from `REAL_IP_HEADER`
+(`X-Forwarded-For` by default) only when the connection comes from `TRUSTED_PROXIES`, and walks the
+header from the right, skipping trusted hops, so a value a visitor puts at the front is ignored. The
+default trusts loopback and the private ranges, where a proxy on the same host (through Docker's
+bridge) or a tunnel container connects from; Caddy and the nginx example below need no change.
+Narrow `TRUSTED_PROXIES` to your proxy's address if untrusted machines on a private network can
+reach `WEB_PORT` directly, since anything that is trusted can claim any client address. Behind a
+Cloudflare Tunnel set `REAL_IP_HEADER=CF-Connecting-IP`. If the address is wrong, every visitor
+shares one limit and a failed-login burst blocks sign-in for everyone for a few seconds.
 
 **Caddy** (obtains and renews certificates automatically):
 
@@ -247,7 +261,7 @@ back, restore the backup taken before the upgrade.
   started without it, they exit and Docker restarts them until it is there.
 - The internal nginx re-resolves the `api` container on every request, so restarting `api` does not
   require restarting `web`.
-- Login is rate-limited in production (Better Auth).
+- Login is rate-limited in production (Better Auth), per client address — see §3.
 - To wipe all board content but keep accounts, boards and settings (for example after a demo), run
   the guarded CLI inside the stack — back up first:
   `docker compose -f infra/docker-compose.yml --env-file infra/.env run --rm migrate pnpm --filter @corkspace/db exec tsx src/reset-content-cli.ts --yes`

@@ -32,6 +32,13 @@ export function makeAuth(db: Database, env: Env) {
     },
     advanced: {
       useSecureCookies: env.NODE_ENV === 'production',
+      // Key the rate limit on the client address. The api is reachable only through the bundled
+      // nginx (infra/nginx.conf), which resolves the client behind trusted proxies (TRUSTED_PROXIES,
+      // REAL_IP_HEADER) and always overwrites X-Real-IP with it, so a client cannot choose its own
+      // bucket. Better Auth's default, X-Forwarded-For, is partly client-controlled: a forged value
+      // gave fresh attempts, and a two-hop chain resolved to no address at all, so every visitor
+      // shared one bucket per path.
+      ipAddress: { ipAddressHeaders: ['x-real-ip'] },
     },
     rateLimit: {
       // Production only — avoids throttling test/dev login flows. The production limit is
