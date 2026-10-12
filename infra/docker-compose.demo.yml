@@ -1,0 +1,169 @@
+# Public demo of Corkspace (DEMO_MODE=on) — see docs/demo.md.
+#
+#   docker compose -f infra/docker-compose.demo.yml --env-file infra/.env.demo up -d --build
+#
+# Separate from a normal instance: its own project name, networks and volume. The only host port is
+# the web container's, bound to 127.0.0.1 for a tunnel or reverse proxy on the same host. The api,
+# database and reset scheduler sit on an internal network without internet access (the demo fetches
+# nothing from outside). Every service has memory, CPU, process and log-size limits.
+name: corkspace-demo
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: postgres://corkspace:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the env file}@db:5432/corkspace
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in the env file}
+  BETTER_AUTH_URL: ${DEMO_URL:?set DEMO_URL to the address visitors open}
+  AUTH_TRUSTED_ORIGINS: ${DEMO_URL}
+  # Required by every instance; nobody can sign in with it in demo mode.
+  ADMIN_EMAIL: admin@example.com
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in the env file}
+  BRAND_NAME: ${BRAND_NAME:-Corkspace}
+  ASSET_DIR: /tmp/corkspace-assets
+  DEMO_MODE: "on"
+  DEMO_CLIENT_IP_HEADER: ${DEMO_CLIENT_IP_HEADER:-x-real-ip}
+  DEMO_RATE_LIMIT: ${DEMO_RATE_LIMIT:-240}
+  DEMO_GUESTS_PER_IP: ${DEMO_GUESTS_PER_IP:-20}
+  DEMO_MAX_GUESTS: ${DEMO_MAX_GUESTS:-500}
+  DEMO_MAX_OBJECTS: ${DEMO_MAX_OBJECTS:-200}
+  DEMO_MAX_BODY_BYTES: ${DEMO_MAX_BODY_BYTES:-16384}
+  DEMO_MAX_DB_MB: ${DEMO_MAX_DB_MB:-1024}
+
+# One image for migrate, api and the reset scheduler (built once, then reused from the cache).
+x-node: &node
+  build:
+    context: ..
+    dockerfile: infra/Dockerfile.node
+  image: corkspace-demo-node:local
+  user: node
+  environment: *app-env
+  networks: [backend]
+  logging: *logging
+  <<: *hardening
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    command: ["postgres", "-c", "max_connections=40", "-c", "shared_buffers=64MB"]
+    environment:
+      POSTGRES_USER: corkspace
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the env file}
+      POSTGRES_DB: corkspace
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U corkspace -d corkspace"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [backend]
+    logging: *logging
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits: { cpus: "0.50", memory: 256M, pids: 100 }
+
+  migrate:
+    <<: *node
+    working_dir: /app/packages/db
+    command: ["node", "--import", "tsx", "src/migrate-cli.ts"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    deploy:
+      resources:
+        limits: { cpus: "0.50", memory: 256M, pids: 64 }
+
+  api:
+    <<: *node
+    working_dir: /app/apps/api
+    command: ["node", "--import", "tsx", "src/index.ts"]
+    environment:
+      <<: *app-env
+      API_PORT: "3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits: { cpus: "1.00", memory: 384M, pids: 128 }
+
+  # Restores the seed every DEMO_RESET_INTERVAL seconds (default: on the full hour).
+  reset:
+    <<: *node
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        interval="$${DEMO_RESET_INTERVAL:-3600}"
+        echo "demo reset every $${interval}s"
+        while :; do
+          sleep $$((interval - $$(date +%s) % interval))
+          demo-reset || echo "demo-reset failed; next attempt at the next interval" >&2
+        done
+    environment:
+      <<: *app-env
+      DEMO_RESET_INTERVAL: ${DEMO_RESET_INTERVAL:-3600}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits: { cpus: "0.50", memory: 256M, pids: 64 }
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+    image: corkspace-demo-web:local
+    environment:
+      DEMO_MODE: "on"
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${DEMO_PORT:-8090}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks: [backend, edge]
+    logging: *logging
+    <<: *hardening
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits: { cpus: "0.50", memory: 64M, pids: 64 }
+
+networks:
+  # No route to the internet: api, database and scheduler only talk to each other and to nginx.
+  backend:
+    internal: true
+  # nginx's side for the published port.
+  edge: {}
+
+volumes:
+  pgdata:

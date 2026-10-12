@@ -13,6 +13,7 @@ has the sections Status, Context, Decision and Consequences. The product itself 
 | [0005](0005-assets-on-disk-and-worker.md) | Assets on a local volume, processed by a queue worker | Accepted |
 | [0006](0006-ssrf-guarded-fetching.md) | Server-side fetching only through an SSRF guard; no arbitrary embeds | Accepted |
 | [0007](0007-client-state-and-local-storage.md) | Board state lives on the server; localStorage only for UI preferences | Accepted |
+| [0008](0008-public-demo-mode.md) | Public demo mode with guest accounts | Proposed |
 
 ## Adding a record
 

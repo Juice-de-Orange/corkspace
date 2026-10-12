@@ -86,6 +86,14 @@ jobs:
           docker compose -f infra/docker-compose.yml --env-file infra/.env config -q
       - name: Images build
         run: docker compose -f infra/docker-compose.yml --env-file infra/.env build
+      - name: Demo compose file is valid and refuses to start without its secrets
+        run: |
+          if docker compose -f infra/docker-compose.demo.yml config -q 2>/dev/null; then
+            echo "::error::the demo compose file accepted missing secrets"; exit 1
+          fi
+          printf '%s\n' POSTGRES_PASSWORD=ci-only BETTER_AUTH_SECRET=ci-only-secret-value-0123456789 \
+            ADMIN_PASSWORD=ci-only-admin DEMO_URL=http://localhost:8090 > infra/.env.demo
+          docker compose -f infra/docker-compose.demo.yml --env-file infra/.env.demo config -q
 
   secrets:
     # Full-history secret scan on every PR and push. Same tool and version as

@@ -17,6 +17,12 @@ All notable changes to this project are documented here. The format follows
   public `GET /api/instance`.
 - README "Known limitations" says what works differently without e-mail, and DEPLOYMENT.md §4 how
   a locked-out administrator gets back in (#10).
+- `DEMO_MODE=on` for a public demo (docs/demo.md): every visitor gets a guest account with a private
+  copy of a seed board; sign-in, sign-up, password reset, invitations, read links, uploads, link
+  previews, feedback and the admin area are refused server-side (`DEMO_DISABLED`); per-address
+  request and guest limits, object, body-size and database-size caps; a banner on every page;
+  `noindex`. `demo-reset` restores the seed; `infra/docker-compose.demo.yml` runs the demo with an
+  hourly reset, resource limits, an api without internet access and one port on `127.0.0.1`.
 
 ### Fixed
 
