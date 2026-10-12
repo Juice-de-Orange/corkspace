@@ -41,7 +41,7 @@ https://corkspace.example.com` writes the right addresses), backups and upgrades
 [![CI](https://github.com/Juice-de-Orange/corkspace/actions/workflows/ci.yml/badge.svg)](https://github.com/Juice-de-Orange/corkspace/actions/workflows/ci.yml)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
-Built with heavy AI assistance (Claude Code); designed, reviewed, tested and run by me.
+Built with AI assistance.
 
 ## How it compares
 
@@ -180,8 +180,7 @@ upgrade procedure in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) were not part of t
 
 ## AI assistance
 
-As said at the top: built with heavy AI assistance (Claude Code); designed, reviewed, tested and
-run by me. The working method — phased plans with hard quality gates (tests, coverage, audits) — is
+As said at the top: built with AI assistance. The working method — phased plans with hard quality gates (tests, coverage, audits) — is
 described in [CLAUDE.md](CLAUDE.md).
 
 ## License
