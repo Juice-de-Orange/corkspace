@@ -1,11 +1,81 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import { useValue } from 'signia-react'
 import { Field } from '../components/ui'
 import { useT } from '../i18n'
 import { signIn } from '../lib/auth-client'
-import { brandAtom } from '../lib/brand'
+import { brandAtom, demoAtom } from '../lib/brand'
+
+/** Ask the server for a guest session with a private copy of the demo board. */
+async function startDemoSession(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/demo/session', { method: 'POST', credentials: 'include' })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+/** The sign-in page of a public demo: no form, the visitor's own board is prepared right away. */
+function DemoStart() {
+  const t = useT()
+  const brand = useValue(brandAtom)
+  const [failed, setFailed] = useState(false)
+  const start = useCallback(async () => {
+    setFailed(false)
+    if (await startDemoSession()) {
+      window.location.assign('/')
+      return
+    }
+    setFailed(true)
+  }, [])
+  useEffect(() => {
+    void start()
+  }, [start])
+
+  return (
+    <div className="page" style={{ display: 'grid', placeItems: 'center' }}>
+      <div className="card" style={{ width: '100%', maxWidth: 400, margin: 'var(--space-4)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 40, lineHeight: 1 }} aria-hidden="true">
+            📌
+          </div>
+          <h1
+            className="page-title"
+            style={{ marginTop: 'var(--space-3)', fontSize: 'var(--text-2xl)' }}
+          >
+            {brand}
+          </h1>
+          {failed ? (
+            <>
+              <p role="alert" className="field-error" style={{ marginTop: 'var(--space-3)' }}>
+                {t('demo.busy')}
+              </p>
+              <button
+                type="button"
+                className="btn btn-accent btn-lg btn-block"
+                style={{ marginTop: 'var(--space-5)' }}
+                onClick={() => void start()}
+              >
+                {t('demo.start')}
+              </button>
+            </>
+          ) : (
+            <p className="hint" style={{ marginTop: 'var(--space-1)' }}>
+              {t('demo.starting')}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function Login() {
+  const demo = useValue(demoAtom)
+  return demo ? <DemoStart /> : <SignInForm />
+}
+
+function SignInForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
