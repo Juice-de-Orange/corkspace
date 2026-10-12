@@ -14,7 +14,7 @@ plugin. TLS is terminated by a reverse proxy of your choice in front of the stac
 | `migrate` | `infra/Dockerfile.node` | One-shot: applies pending migrations, then exits |
 | `api` | `infra/Dockerfile.node` | Hono API + Better Auth on port 3000 (internal only) |
 | `worker` | `infra/Dockerfile.node` | Image processing queue (sharp, SSRF-safe downloads) |
-| `web` | `infra/Dockerfile.web` | nginx serving the built SPA and proxying `/api/` to `api`; published on `${WEB_PORT}` (default 8080) |
+| `web` | `infra/Dockerfile.web` | nginx serving the built SPA and proxying `/api/` to `api`; runs as the unprivileged user `nginx` (uid 101) and listens on 8080 inside the container, published on `${WEB_PORT}` (default 8080) |
 
 `api` and `worker` start only after `db` is healthy and `migrate` has completed successfully. Uploaded
 images live in the `assets` volume, shared by `api`, `worker` and (read-only) `web`.
@@ -60,7 +60,7 @@ docker compose -f infra/docker-compose.yml --env-file infra/.env ps -a
 curl -fsS http://localhost:8080/api/health    # {"status":"ok","db":"up"}
 ```
 
-`migrate` should show `Exited (0)`; `db` and `api` should be `healthy`. Until `api` is healthy, `/api/`
+`migrate` should show `Exited (0)`; `db`, `api` and `web` should be `healthy`. Until `api` is healthy, `/api/`
 requests return 502 for a few seconds.
 
 ## 3. Put a reverse proxy with TLS in front
@@ -120,7 +120,7 @@ untracked override file and pass it as a second `-f`:
 services:
   web:
     ports: !override
-      - "127.0.0.1:8080:80"
+      - "127.0.0.1:8080:8080"
 ```
 
 ```bash
@@ -128,6 +128,7 @@ docker compose -f infra/docker-compose.yml -f infra/docker-compose.local.yml --e
 ```
 
 A tunnel (Cloudflare Tunnel, Tailscale Funnel, …) works the same way: point it at the `web` service
+on port **8080** (for example `http://corkspace-web-1:8080` from a container on the same network)
 and keep the public URL in `BETTER_AUTH_URL`.
 
 ## 4. First administrator

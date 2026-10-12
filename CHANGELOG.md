@@ -41,6 +41,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- The `web` container runs nginx as the unprivileged user `nginx` (uid 101) instead of root and
+  listens on port 8080 inside the container; it now has a healthcheck. `WEB_PORT` on the host is
+  unchanged. If a reverse proxy, tunnel or override file points at the container itself (for
+  example `web:80` or `127.0.0.1:8080:80`), change the container port to 8080 (#27).
 - English is the default UI language; German is picked from a German browser language or the
   toggle.
 - Appearance background ids are English (`cork-photo`, `paper`, …); migration `0008` rewrites
