@@ -50,7 +50,8 @@ Edit `infra/.env`. The backup scripts read `infra/.env` by default, so keep it t
 `DATABASE_URL` is composed automatically inside the stack; set it only when you run the api or
 worker outside Compose. `API_PORT`, `ASSET_DIR` and `NODE_ENV` are fixed by the compose file. The
 `SMTP_*` variables are accepted by the configuration schema but not used yet — there are no
-outgoing emails; administrators reset passwords in `/admin`.
+outgoing emails (see "Known limitations" in the README); administrators set new passwords in
+`/admin`.
 
 Never commit `infra/.env`; it is ignored by `.gitignore`.
 
@@ -139,6 +140,14 @@ On every start the api checks whether an account with `ADMIN_EMAIL` exists. If n
 as an administrator with `ADMIN_PASSWORD` and `ADMIN_NAME` and gives it a personal board ("My
 board"). If the account exists, nothing is changed — editing `ADMIN_PASSWORD` later does **not**
 reset the password; change it in `/admin` instead.
+
+**Locked out?** There is no e-mail reset. If the only administrator has lost the password, create a
+second administrator the same way: set `ADMIN_EMAIL` to an address that has no account yet and
+`ADMIN_PASSWORD` to a new password in `infra/.env`, then
+`docker compose -f infra/docker-compose.yml --env-file infra/.env up -d` (the api is recreated and
+creates that account on start). Sign in with it, set a new password for the old account under
+**Admin → Users**, sign in with the old account, delete the helper account there, and put the old
+`ADMIN_EMAIL` back into `infra/.env` — otherwise the next start creates the helper account again.
 
 Sign in at `https://corkspace.example.com/login`, then open `/admin` to create further accounts.
 Open sign-up is disabled; every account gets its own board, and board owners invite others as

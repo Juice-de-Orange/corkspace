@@ -15,6 +15,8 @@ All notable changes to this project are documented here. The format follows
 - `BRAND_NAME` sets the name of an instance shown in the header, on the sign-in page, in the
   browser tab and in export file names (default `Corkspace`). The web app reads it from the new
   public `GET /api/instance`.
+- README "Known limitations" says what works differently without e-mail, and DEPLOYMENT.md §4 how
+  a locked-out administrator gets back in (#10).
 
 ### Fixed
 
