@@ -2,7 +2,6 @@ import type { Catalog } from './types'
 
 /** App header / shell / nav / public-board chrome. Key prefix: `shell.*`. */
 export const shell = {
-  'shell.brand': { de: 'Corkspace', en: 'Corkspace' },
   'shell.share': { de: 'Teilen', en: 'Share' },
   'shell.account': { de: 'Konto', en: 'Account' },
   'shell.admin': { de: 'Admin', en: 'Admin' },

@@ -12,6 +12,9 @@ All notable changes to this project are documented here. The format follows
   invitations and share links, admin area, dashboard with search, graph, trash and version
   history, PNG/PDF export, light/dark/retro themes, touch UI.
 - `pnpm db:seed-demo` fills a board with synthetic demo content.
+- `BRAND_NAME` sets the name of an instance shown in the header, on the sign-in page, in the
+  browser tab and in export file names (default `Corkspace`). The web app reads it from the new
+  public `GET /api/instance`.
 
 ### Fixed
 
@@ -41,6 +44,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- `scripts/backup.sh` and `scripts/restore.sh` find the database, api and worker containers and the
+  assets volume through the compose project (including `COMPOSE_PROJECT_NAME` in `infra/.env`)
+  instead of assuming `corkspace-*` names; `DB_CONTAINER`, `ASSETS_VOLUME`, `API_CONTAINER` and
+  `WORKER_CONTAINER` still override them. The backup now stops if the assets volume does not exist
+  instead of archiving a newly created empty one.
 - The `web` container runs nginx as the unprivileged user `nginx` (uid 101) instead of root and
   listens on port 8080 inside the container; it now has a healthcheck. `WEB_PORT` on the host is
   unchanged. If a reverse proxy, tunnel or override file points at the container itself (for

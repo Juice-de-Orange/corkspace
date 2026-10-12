@@ -43,6 +43,8 @@ Edit `infra/.env`. The backup scripts read `infra/.env` by default, so keep it t
 | `AUTH_TRUSTED_ORIGINS` | **yes** | Comma-separated origins allowed to call the auth endpoints; normally the same URL. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | **yes** | The first administrator (password at least 8 characters). See §4. |
 | `ADMIN_NAME` | no | Display name of the first administrator, default `Admin`. |
+| `BRAND_NAME` | no | Name of your instance in the header, on the sign-in page, in the browser tab and in export file names, default `Corkspace`. Read by the api at start; restart `api` after changing it. |
+| `COMPOSE_PROJECT_NAME` | no | Compose project name, default `corkspace` (from the compose file). It prefixes container, volume and network names; the backup scripts follow it. |
 | `WEB_PORT` | no | Host port of the `web` service, default 8080. |
 
 `DATABASE_URL` is composed automatically inside the stack; set it only when you run the api or
@@ -151,15 +153,23 @@ keeps the newest copies of each.
 bash scripts/backup.sh
 ```
 
+The scripts find the containers and the assets volume through Compose
+(`docker compose -f infra/docker-compose.yml --env-file infra/.env ps`), so they follow the project
+name, including `COMPOSE_PROJECT_NAME` set in `infra/.env`. If you start the stack with `-p <name>`
+on the command line instead, export `COMPOSE_PROJECT_NAME=<name>` for the scripts as well.
+
 Defaults (override with environment variables):
 
 | Variable | Default |
 |---|---|
-| `ENV_FILE` | `infra/.env` (read for `POSTGRES_USER` / `POSTGRES_DB`) |
+| `ENV_FILE` | `infra/.env` (read for `POSTGRES_USER` / `POSTGRES_DB` and the project name) |
 | `BACKUP_DIR` | `$HOME/corkspace-backups` |
-| `DB_CONTAINER` | `corkspace-db-1` |
-| `ASSETS_VOLUME` | `corkspace_assets` |
+| `DB_CONTAINER` | the `db` container of the compose project (`corkspace-db-1` if none is found) |
+| `ASSETS_VOLUME` | `<project>_assets`, e.g. `corkspace_assets` |
 | `RETAIN` | `14` (per kind) |
+
+The backup stops with an error if the assets volume does not exist, instead of archiving an empty
+volume.
 
 Output: `db-<YYYYmmdd-HHMMSS>.dump` and `assets-<YYYYmmdd-HHMMSS>.tgz`. The stack must be running.
 Schedule it with cron, for example daily at 03:30:
@@ -181,10 +191,10 @@ database and replaces the entire contents of the assets volume. Before it change
 checks that both files exist, that `pg_restore` can read the dump and that the tarball lists; if
 not, it stops with "nothing was changed". It then stops the `api` and `worker` containers, restores,
 and starts them again (also when the restore fails half-way), so the instance answers 502 for the
-duration. It uses the same `ENV_FILE`, `DB_CONTAINER` and `ASSETS_VOLUME` defaults as the backup
-script, plus `API_CONTAINER` (`corkspace-api-1`) and `WORKER_CONTAINER` (`corkspace-worker-1`); if
-your containers have other names and you do not set these, restart `api` and `worker` yourself
-afterwards. Rehearse a restore on a test stack before you need it.
+duration. It finds the containers and the volume the same way as the backup script (same
+`ENV_FILE`, `DB_CONTAINER` and `ASSETS_VOLUME` overrides), plus `API_CONTAINER` and
+`WORKER_CONTAINER` for the `api` and `worker` services; if it finds neither running, it says so and
+you restart them yourself afterwards. Rehearse a restore on a test stack before you need it.
 
 ## 7. Upgrading
 

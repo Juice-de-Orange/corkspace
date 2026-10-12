@@ -9,6 +9,7 @@ import { assetsServeRoute } from './routes/assets'
 import { boardsRoute } from './routes/boards'
 import { feedbackRoute } from './routes/feedback'
 import { healthRoute } from './routes/health'
+import { instanceRoute } from './routes/instance'
 import { linksRoute } from './routes/links'
 import { meRoute } from './routes/me'
 import { publicRoute } from './routes/public'
@@ -49,6 +50,7 @@ export function buildApp(deps: AppDeps) {
   app.use('*', sessionMiddleware(deps.auth))
 
   app.route('/api/health', healthRoute(deps))
+  app.route('/api/instance', instanceRoute(deps))
   app.route('/api/me', meRoute(deps))
   app.route('/api/links', linksRoute())
   // Serve asset bytes by global id (board resolved from the asset). Uploads live under a board.

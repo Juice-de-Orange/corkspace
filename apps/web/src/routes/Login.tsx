@@ -1,7 +1,9 @@
 import { type FormEvent, useState } from 'react'
+import { useValue } from 'signia-react'
 import { Field } from '../components/ui'
 import { useT } from '../i18n'
 import { signIn } from '../lib/auth-client'
+import { brandAtom } from '../lib/brand'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -9,6 +11,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const t = useT()
+  const brand = useValue(brandAtom)
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -41,7 +44,7 @@ export function Login() {
             className="page-title"
             style={{ marginTop: 'var(--space-3)', fontSize: 'var(--text-2xl)' }}
           >
-            {t('shell.brand')}
+            {brand}
           </h1>
           <p className="hint" style={{ marginTop: 'var(--space-1)' }}>
             {t('auth.subtitle')}

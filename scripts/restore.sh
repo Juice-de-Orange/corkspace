@@ -12,10 +12,8 @@ set -a; [ -f "$ENV_FILE" ] && . "$ENV_FILE"; set +a
 
 DUMP="${1:?usage: restore.sh <db-*.dump> <assets-*.tgz>}"
 ASSETS="${2:?usage: restore.sh <db-*.dump> <assets-*.tgz>}"
-DB_CONTAINER="${DB_CONTAINER:-corkspace-db-1}"
-API_CONTAINER="${API_CONTAINER:-corkspace-api-1}"
-WORKER_CONTAINER="${WORKER_CONTAINER:-corkspace-worker-1}"
-ASSETS_VOLUME="${ASSETS_VOLUME:-corkspace_assets}"
+# shellcheck source=compose-names.sh
+. "$HERE/scripts/compose-names.sh"
 PGUSER="${POSTGRES_USER:-corkspace}"
 PGDB="${POSTGRES_DB:-corkspace}"
 
