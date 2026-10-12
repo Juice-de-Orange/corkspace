@@ -1,0 +1,56 @@
+#!/bin/sh
+# One-time setup for `docker compose up -d`: writes infra/.env from .env.example with generated
+# secrets and safe defaults for a local try, and prints the admin sign-in. Never overwrites an
+# existing infra/.env.
+#
+#   ./setup                                   # http://localhost:8080, admin@example.com
+#   ./setup https://corkspace.example.com     # the public address behind your TLS proxy
+#   ADMIN_EMAIL=you@example.com ./setup
+set -eu
+cd "$(dirname "$0")"
+
+env_file=infra/.env
+url="${1:-http://localhost:8080}"
+admin_email="${ADMIN_EMAIL:-admin@example.com}"
+
+if [ -e "$env_file" ]; then
+  echo "$env_file already exists; keeping it. Start with: docker compose up -d"
+  exit 0
+fi
+case "$url" in
+  http://* | https://*) ;;
+  *) echo "usage: ./setup [public URL, e.g. https://corkspace.example.com]" >&2; exit 2 ;;
+esac
+url="${url%/}"
+
+# 32 random bytes as URL-safe text (no characters that need quoting in an env file).
+secret() {
+  if command -v openssl > /dev/null 2>&1; then
+    openssl rand -base64 32
+  else
+    head -c 32 /dev/urandom | base64
+  fi | tr -d '\n=' | tr '+/' '-_'
+}
+
+admin_password="$(secret | cut -c1-20)"
+umask 077
+sed \
+  -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(secret)|" \
+  -e "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=$(secret)|" \
+  -e "s|^BETTER_AUTH_URL=.*|BETTER_AUTH_URL=$url|" \
+  -e "s|^AUTH_TRUSTED_ORIGINS=.*|AUTH_TRUSTED_ORIGINS=$url|" \
+  -e "s|^WEB_ORIGIN=.*|WEB_ORIGIN=$url|" \
+  -e "s|^ADMIN_EMAIL=.*|ADMIN_EMAIL=$admin_email|" \
+  -e "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=$admin_password|" \
+  .env.example > "$env_file"
+
+cat <<MSG
+Wrote $env_file (readable only by you) with generated secrets.
+
+  Address:   $url
+  Sign in:   $admin_email
+  Password:  $admin_password   (also in $env_file as ADMIN_PASSWORD)
+
+Next:  docker compose up -d
+Demo content (optional, once):  docker compose --profile demo run --rm seed
+MSG

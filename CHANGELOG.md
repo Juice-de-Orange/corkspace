@@ -7,6 +7,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- One-command start: `./setup` writes `infra/.env` with generated secrets and prints the admin
+  sign-in; `docker compose up -d` from the repository root (new `compose.yaml`) pulls the GHCR images
+  and builds from source when they are not available; `docker compose --profile demo run --rm seed`
+  loads the demo board without Node on the host. A release workflow publishes
+  `ghcr.io/juice-de-orange/corkspace-{api,worker,web}` for amd64 and arm64 on `v*` tags.
+- README: new top (hero GIF, what you get, quick start), an honest comparison with Miro, tldraw,
+  Excalidraw and AFFiNE, the AI-assistance note; issue form for questions.
 - First public release: infinite canvas with culling and level of detail, five entry types,
   red threads, freehand drawing, frames, teleports, tags, per-user boards with editor/viewer
   invitations and share links, admin area, dashboard with search, graph, trash and version

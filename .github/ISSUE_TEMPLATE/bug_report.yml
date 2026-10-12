@@ -29,7 +29,7 @@ body:
     id: env
     attributes:
       label: Version and environment
-      description: Commit (`git rev-parse --short HEAD`), browser and device, Docker or local dev.
+      description: Image tag (`docker compose images`) or commit (`git rev-parse --short HEAD`), browser and device, Docker or local dev.
     validations:
       required: true
   - type: dropdown
