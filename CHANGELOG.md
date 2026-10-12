@@ -36,6 +36,11 @@ All notable changes to this project are documented here. The format follows
   entries, so it found no address and all visitors shared one bucket: a few failed sign-ins locked
   everyone out for a few seconds. nginx now resolves the client behind `TRUSTED_PROXIES` from
   `REAL_IP_HEADER` and passes it as `X-Real-IP`, the only header the api uses for this.
+- `infra/.env` (database password, auth secret, admin password) was copied into the api, worker
+  and migrate images, because `.dockerignore` excluded env files only at the top level. Env files
+  are now kept out of the build context everywhere. Images built before contain the file: rebuild
+  them and delete the old ones (`docker image prune`), and treat the secrets as exposed if such an
+  image ever left the host.
 - Jump-to flights (search results, internal links, teleports) stopped after their first frame when
   the board was idle: the camera reaction set another atom inside signia's reaction cycle, which
   throws. The flag is now set in a microtask; a regression test covers the idle case.
