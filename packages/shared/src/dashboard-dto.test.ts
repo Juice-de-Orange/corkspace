@@ -11,7 +11,7 @@ describe('searchParamsSchema', () => {
     const r = searchParamsSchema.safeParse({
       q: 'hallo',
       types: ['sticky', 'doc'],
-      tagIds: ['11111111-1111-1111-1111-111111111111'],
+      tagIds: ['11111111-1111-4111-8111-111111111111'],
       includeDeleted: true,
       createdAfter: '2026-01-01T00:00:00.000Z',
       createdBefore: '2026-12-31T00:00:00.000Z',
@@ -83,7 +83,7 @@ describe('normalizeSearchParams', () => {
     expect(normalizeSearchParams({ types: ['sticky', 'sticky', 'doc'] })).toEqual({
       types: ['sticky', 'doc'],
     })
-    const id = '11111111-1111-1111-1111-111111111111'
+    const id = '11111111-1111-4111-8111-111111111111'
     expect(normalizeSearchParams({ tagIds: [id, id] })).toEqual({ tagIds: [id] })
   })
 
