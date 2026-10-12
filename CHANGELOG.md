@@ -5,6 +5,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-13
+
+A patch release: start-up, demo and documentation fixes from a first-visitor check of v0.1.0, and
+dependency updates. No database migrations.
+
+### Fixed
+
+- `web` waits for a healthy `api` in `infra/docker-compose.yml`. Before, nginx served the sign-in
+  page about ten seconds before the api answered, and a first sign-in in that window met 502 (#61).
+- The demo seed (`docker compose --profile demo run --rm seed`, and the template board of a public
+  demo) starts right of the Places panel and below the toolbar, so the first view of the board shows
+  every note uncovered (#61).
+- `infra/docker-compose.demo.yml` runs the released GHCR images (`CORKSPACE_VERSION`, default
+  `latest`) like a normal instance; `--build` still builds from the checkout (docs/demo.md) (#61).
+- README: the quick-start time is measured with the pulled release images (about 1½ minutes);
+  building from source is named as the slower case (#61).
+- The issue chooser links to GitHub Discussions (#61).
+
+### Changed
+
+- Dependencies: zod 3.25 → 4.6 (#50); vite 6 → 8 with @vitejs/plugin-react 4.7 → 6.1 (#53);
+  jsdom 25 → 30 (#51); better-auth 1.7.7, drizzle-orm 0.45.4, hono 4.13.13, pg 8.23.1,
+  @node-rs/argon2 2.2.2, @playwright/test 1.64.0, @biomejs/biome 2.5.15, knip 6.41.0 and
+  turbo 2.11.7 (#58).
+
 ## [0.1.0] - 2026-10-12
 
 ### Added
