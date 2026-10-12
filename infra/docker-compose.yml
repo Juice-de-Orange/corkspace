@@ -1,5 +1,9 @@
 name: corkspace
 
+# Images: `docker compose up -d` pulls the released images from GHCR (CORKSPACE_VERSION, default
+# latest) and builds them from this checkout only when they cannot be pulled; `--build` always
+# builds from source.
+
 # Shared app env for the Node services. DATABASE_URL is composed from POSTGRES_* and
 # the in-network `db` host so it always points at the compose Postgres.
 x-app-env: &app-env
@@ -30,6 +34,7 @@ services:
       retries: 12
 
   migrate:
+    image: ghcr.io/juice-de-orange/corkspace-api:${CORKSPACE_VERSION:-latest}
     build:
       context: ..
       dockerfile: infra/Dockerfile.node
@@ -41,6 +46,7 @@ services:
     restart: "no"
 
   api:
+    image: ghcr.io/juice-de-orange/corkspace-api:${CORKSPACE_VERSION:-latest}
     build:
       context: ..
       dockerfile: infra/Dockerfile.node
@@ -66,6 +72,7 @@ services:
     restart: unless-stopped
 
   worker:
+    image: ghcr.io/juice-de-orange/corkspace-worker:${CORKSPACE_VERSION:-latest}
     build:
       context: ..
       dockerfile: infra/Dockerfile.node
@@ -83,6 +90,7 @@ services:
     restart: unless-stopped
 
   web:
+    image: ghcr.io/juice-de-orange/corkspace-web:${CORKSPACE_VERSION:-latest}
     build:
       context: ..
       dockerfile: infra/Dockerfile.web
@@ -98,6 +106,25 @@ services:
       timeout: 5s
       retries: 6
     restart: unless-stopped
+
+  # Synthetic demo content (a trip, a recipe, a small project) on the admin's board, without Node
+  # on the host. Once, on an empty board:  docker compose --profile demo run --rm seed
+  seed:
+    profiles: [demo]
+    image: ghcr.io/juice-de-orange/corkspace-api:${CORKSPACE_VERSION:-latest}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.node
+    command: ["pnpm", "--filter", "@corkspace/api", "exec", "tsx", "src/seed/demo-cli.ts"]
+    environment:
+      SEED_URL: http://api:3000
+      SEED_ORIGIN: ${BETTER_AUTH_URL}
+      SEED_EMAIL: ${ADMIN_EMAIL}
+      SEED_PASSWORD: ${ADMIN_PASSWORD}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"
 
 volumes:
   pgdata:

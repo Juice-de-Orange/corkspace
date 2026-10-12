@@ -1,0 +1,7 @@
+# `docker compose up -d` from the repository root. Run ./setup once before: it writes infra/.env
+# with generated secrets. The services are defined in infra/docker-compose.yml (docs/DEPLOYMENT.md).
+name: corkspace
+
+include:
+  - path: infra/docker-compose.yml
+    env_file: infra/.env
