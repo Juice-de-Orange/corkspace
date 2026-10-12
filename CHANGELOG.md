@@ -5,8 +5,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-12
+
 ### Added
 
+- First public release: infinite canvas with culling and level of detail, five entry types,
+  red threads, freehand drawing, frames, teleports, tags, per-user boards with editor/viewer
+  invitations and share links, admin area, dashboard with search, graph, trash and version
+  history, PNG/PDF export, light/dark/retro themes, touch UI.
 - One-command start: `./setup` writes `infra/.env` with generated secrets and prints the admin
   sign-in; `docker compose up -d` from the repository root (new `compose.yaml`) pulls the GHCR images
   and builds from source when they are not available; `docker compose --profile demo run --rm seed`
@@ -14,10 +20,6 @@ All notable changes to this project are documented here. The format follows
   `ghcr.io/juice-de-orange/corkspace-{api,worker,web}` for amd64 and arm64 on `v*` tags.
 - README: new top (hero GIF, what you get, quick start), an honest comparison with Miro, tldraw,
   Excalidraw and AFFiNE, the AI-assistance note; issue form for questions.
-- First public release: infinite canvas with culling and level of detail, five entry types,
-  red threads, freehand drawing, frames, teleports, tags, per-user boards with editor/viewer
-  invitations and share links, admin area, dashboard with search, graph, trash and version
-  history, PNG/PDF export, light/dark/retro themes, touch UI.
 - `pnpm db:seed-demo` fills a board with synthetic demo content.
 - `BRAND_NAME` sets the name of an instance shown in the header, on the sign-in page, in the
   browser tab and in export file names (default `Corkspace`). The web app reads it from the new
