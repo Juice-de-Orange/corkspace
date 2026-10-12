@@ -1,25 +1,85 @@
 # Corkspace
 
-**An infinite, explorable pinboard you host yourself — sticky notes, rich documents,
-checklists, images and link cards on a canvas where everything has a place, tied together
-with red threads.**
+**Your own infinite pinboard: notes, documents, checklists, images and links on one canvas, tied
+together with red threads — self-hosted, and everything stays findable.**
 
-![A demo board: a trip, a recipe and a small project, connected with red threads](docs/media/board.jpg)
+![Zooming into a demo board, adding a note, tying it to another note with a red thread, then searching for “plum” and flying to the recipe](docs/media/hero.gif)
 
-Corkspace is a Miro-style canvas built from scratch — no canvas SDK — so that it stays smooth
-with thousands of items and keeps every item at a real world position you can always find
-again. It is a small multi-user product: every account owns a board, owners invite editors
-and viewers or share a read-only link, and an admin keeps the instance in order.
+- **An infinite canvas that stays smooth** — a custom engine (no canvas SDK) with culling and level
+  of detail; zoom from 2 % to 800 % across thousands of items.
+- **More than sticky notes** — rich documents, checklists, images, link cards and YouTube/Vimeo
+  embeds sit on the board next to notes in six colours.
+- **Connect the dots** — red threads with labels, freehand drawing, frames that move their contents,
+  teleports to saved places, tags.
+- **Find it again** — full-text search that flies you to the result, 20 versions per entry, trash,
+  a connection graph, PNG/PDF export.
+- **Runs on your server** — Docker Compose and Postgres, accounts you create, editor/viewer sharing
+  and read-only links, MIT licence.
+
+## Quick start
+
+You need Docker with the Compose plugin.
+
+```bash
+git clone https://github.com/Juice-de-Orange/corkspace.git && cd corkspace
+./setup              # writes infra/.env with generated secrets, prints your admin sign-in
+docker compose up -d
+```
+
+Open <http://localhost:8080> and sign in with the address and password `./setup` printed.
+On a clean Docker host (8 CPU cores, no cached images) the sign-in page was up **about 2½ minutes**
+after `git clone` (measured 2026-10-12: 140 s). No release images are published yet, so that
+run built them from source; until they are, `docker compose up -d` prints "denied" warnings for
+the `ghcr.io/juice-de-orange/corkspace-*` images and builds them instead.
+
+To see a filled board right away, add the synthetic demo board from the GIF to your (empty) board:
+`docker compose --profile demo run --rm seed`. There is no public sign-up — you create further
+accounts under **Admin → Users**. For a server behind a TLS reverse proxy (`./setup
+https://corkspace.example.com` writes the right addresses), backups and upgrades, see
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+[![CI](https://github.com/Juice-de-Orange/corkspace/actions/workflows/ci.yml/badge.svg)](https://github.com/Juice-de-Orange/corkspace/actions/workflows/ci.yml)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+
+Built with heavy AI assistance (Claude Code); designed, reviewed, tested and run by me.
+
+## How it compares
+
+Checked against each project's own website, docs and licence on 2026-10-12. Corkspace is a small,
+young project; the others are mature products with large communities.
+
+| | Corkspace | [Miro](https://miro.com) | [tldraw](https://tldraw.dev) | [Excalidraw](https://excalidraw.com) | [AFFiNE](https://affine.pro) |
+|---|---|---|---|---|---|
+| What it is | Self-hosted pinboard app | Hosted whiteboard (SaaS) | Whiteboard SDK, plus the tldraw.com app | Hand-drawn style whiteboard | Docs, whiteboard and databases in one workspace |
+| Licence | MIT | Proprietary | tldraw license: production use needs a licence key (trial, hobby with watermark, or commercial) | MIT | Mixed: MIT / MPL-2.0, server parts under an Enterprise licence |
+| Self-hosting | Docker Compose (web, api, worker, Postgres) | No | Inside your own app; you host the sync server | Official Docker image of the editor; "self-hosting your own instance doesn't support sharing or collaboration features" | Official Docker Compose (with Postgres and Redis); free self-hosted tier up to 10 members per workspace |
+| Real-time co-editing | **No** — last write wins, others' changes appear on reload | Yes | Yes (tldraw sync) | Yes on excalidraw.com, end-to-end encrypted | Yes |
+| Accounts and sharing when self-hosted | Accounts created by an admin; editors and viewers per board; read-only links; per-entry public/private | — | You build them | None in the self-hosted editor | Workspaces with members |
+| Offline | No | No official offline mode found | Saves to the browser (IndexedDB) | Local-first, works offline | Local-first, desktop app |
+| Apps | Web, with a touch UI for phones | Web, desktop, iOS, Android | SDK for your own app | Web (PWA) | Web, desktop |
+
+**Where they are better:** Miro has real-time collaboration, thousands of templates, hundreds of
+integrations and native apps. tldraw is a polished canvas engine and multiplayer SDK to build your
+own product on. Excalidraw is the quickest way to sketch together, end-to-end encrypted, with a
+huge community. AFFiNE combines documents, databases and a whiteboard, works local-first and has
+real-time sync. All four are far more mature than Corkspace.
+
+**Where Corkspace fits:** you want one private board per person on your own server, where
+documents, checklists, images and links live on the canvas next to the notes, connected by threads,
+searchable and versioned, under MIT — and you do not need live co-editing.
 
 ## Features
+
+![The demo board: a trip, a recipe and a small project, connected with red threads](docs/media/board.jpg)
 
 - **A truly infinite board.** Pan, pinch and zoom from 2 % to 800 %; the camera never
   re-renders React, a spatial index culls everything off-screen, and items switch to lighter
   representations as they get small on screen. Minimap, position readout, and the board
   remembers where you were.
 - **Entries:** sticky notes in six colours, rich documents (TipTap: headings, lists, quotes,
-  code blocks, links, `==highlight==`, lined or grid paper), checklists, images (incl. animated GIFs) and link cards
-  with previews; YouTube and Vimeo embeds in sandboxed frames.
+  code blocks, links, `==highlight==`, lined or grid paper), checklists, images (incl. animated
+  GIFs) and link cards (with a fetched title, description and image when an administrator adds
+  them, see [Known limitations](#known-limitations)); YouTube and Vimeo embeds in sandboxed frames.
 - **Red threads** between entries with labels and arrowheads, **freehand drawing** (pen,
   marker, lines, arrows, rectangles, eraser) on entries and the board, **frames** that move
   their contents, **teleports** to bookmark places, **tags** with styling rules.
@@ -41,32 +101,6 @@ and viewers or share a read-only link, and an admin keeps the instance in order.
 <td><img src="docs/media/mobile.jpg" alt="The board on a phone with the bottom toolbar" width="260" /></td>
 </tr>
 </table>
-
-## Quick start
-
-You need Docker with Compose.
-
-```bash
-git clone https://github.com/Juice-de-Orange/corkspace.git && cd corkspace
-cp .env.example infra/.env
-# edit infra/.env: POSTGRES_PASSWORD, BETTER_AUTH_SECRET (openssl rand -base64 48),
-# ADMIN_EMAIL, ADMIN_PASSWORD, and the three URLs (http://localhost:8080 for a local try)
-docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build
-```
-
-Open <http://localhost:8080> and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`. There is no
-public sign-up: the admin creates accounts under **Admin → Users**.
-
-To see a filled board right away, load the synthetic demo content into your board. This one step
-runs on the host and needs Node 22 and pnpm in addition to Docker:
-
-```bash
-pnpm install
-SEED_URL=http://localhost:8080 SEED_EMAIL=… SEED_PASSWORD=… pnpm db:seed-demo
-```
-
-For a server behind a reverse proxy with TLS, backups and upgrades, see
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## How it is built
 
@@ -136,14 +170,19 @@ upgrade procedure in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) were not part of t
   - *Board invitations:* an owner can only invite people who already have an account; they are not
     notified, the board simply appears in their board switcher.
   - *Feedback:* new feedback is not announced; administrators look under **Admin → Feedback**.
+- **No real-time collaboration.** Two people editing the same board work last-write-wins per
+  entry; changes by others appear on reload.
+- **Link previews only for administrators.** Fetching a page's title, description and image for a
+  link card is limited to the instance administrator; for everyone else the card shows the plain
+  link.
 - Touch e2e tests are not automated yet (#11); the release checks ran in Chromium only, see
   [Status](#status).
 
-## Built with Claude Code
+## AI assistance
 
-Corkspace was built by [Claude Code](https://claude.com/claude-code) working through a phased
-plan with hard quality gates (tests, coverage, audits) — the working method is described in
-[CLAUDE.md](CLAUDE.md). Product decisions, reviews and acceptance were human.
+As said at the top: built with heavy AI assistance (Claude Code); designed, reviewed, tested and
+run by me. The working method — phased plans with hard quality gates (tests, coverage, audits) — is
+described in [CLAUDE.md](CLAUDE.md).
 
 ## License
 

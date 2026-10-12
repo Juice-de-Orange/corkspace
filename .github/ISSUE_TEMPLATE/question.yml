@@ -1,0 +1,27 @@
+name: Question
+description: Ask how something works, or whether Corkspace fits what you want to do.
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Happy to help. Please check the [README](https://github.com/Juice-de-Orange/corkspace#readme)
+        and [docs/DEPLOYMENT.md](https://github.com/Juice-de-Orange/corkspace/blob/main/docs/DEPLOYMENT.md)
+        first — and remove passwords, secrets, hostnames and personal content from anything you paste.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What do you want to know or do?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: What you tried
+      description: Commands, settings or steps so far, and what happened.
+  - type: input
+    id: env
+    attributes:
+      label: Version and environment
+      description: Image tag or commit, how you run it (Docker Compose, behind which proxy), browser.

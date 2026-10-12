@@ -34,6 +34,11 @@ chmod 600 infra/.env
 
 Edit `infra/.env`. The backup scripts read `infra/.env` by default, so keep it there.
 
+Shortcut: `./setup https://corkspace.example.com` writes `infra/.env` from `.env.example` with
+generated `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRET` and `ADMIN_PASSWORD`, sets the three URLs to
+that address and prints the admin sign-in (`ADMIN_EMAIL=you@example.com ./setup …` to choose the
+account). It never overwrites an existing `infra/.env`.
+
 | Variable | Required | Notes |
 |---|---|---|
 | `POSTGRES_PASSWORD` | **yes** | Compose refuses to start without it; there is no fallback. Use a long random value. |
@@ -44,7 +49,8 @@ Edit `infra/.env`. The backup scripts read `infra/.env` by default, so keep it t
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | **yes** | The first administrator (password at least 8 characters). See §4. |
 | `ADMIN_NAME` | no | Display name of the first administrator, default `Admin`. |
 | `BRAND_NAME` | no | Name of your instance in the header, on the sign-in page, in the browser tab and in export file names, default `Corkspace`. Read by the api at start; restart `api` after changing it. |
-| `COMPOSE_PROJECT_NAME` | no | Compose project name, default `corkspace` (from the compose file). It prefixes container, volume and network names; the backup scripts follow it. |
+| `COMPOSE_PROJECT_NAME` | no | Compose project name, default `corkspace` (from the compose file). It prefixes container, volume and network names; the backup scripts follow it. It applies to the `-f infra/docker-compose.yml` commands below; `docker compose` from the repository root (`compose.yaml`) always uses `corkspace`. |
+| `CORKSPACE_VERSION` | no | Tag of the GHCR images to pull, default `latest` (e.g. `0.2.0` to pin a release). |
 | `WEB_PORT` | no | Host port of the `web` service, default 8080. |
 
 `DATABASE_URL` is composed automatically inside the stack; set it only when you run the api or
@@ -62,6 +68,12 @@ docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build
 docker compose -f infra/docker-compose.yml --env-file infra/.env ps -a
 curl -fsS http://localhost:8080/api/health    # {"status":"ok","db":"up"}
 ```
+
+`docker compose up -d` from the repository root is the same stack (`compose.yaml` includes
+`infra/docker-compose.yml` with `infra/.env`). Without `--build`, Compose pulls the release images
+`ghcr.io/juice-de-orange/corkspace-{api,worker,web}` (published for amd64 and arm64 by
+`.github/workflows/release.yml` on every version tag) and builds from the checkout only if a pull
+fails — as it does until the first release is published; `--build` always builds from source.
 
 `migrate` should show `Exited (0)`; `db`, `api` and `web` should be `healthy`. Until `api` is healthy, `/api/`
 requests return 502 for a few seconds.
@@ -210,7 +222,8 @@ you restart them yourself afterwards. Rehearse a restore on a test stack before 
 ```bash
 bash scripts/backup.sh
 git pull
-docker compose -f infra/docker-compose.yml --env-file infra/.env build
+docker compose -f infra/docker-compose.yml --env-file infra/.env pull   # released images, or:
+docker compose -f infra/docker-compose.yml --env-file infra/.env build  # from source
 docker compose -f infra/docker-compose.yml --env-file infra/.env up -d
 docker compose -f infra/docker-compose.yml --env-file infra/.env ps -a
 docker compose -f infra/docker-compose.yml --env-file infra/.env logs migrate
