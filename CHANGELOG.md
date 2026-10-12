@@ -31,15 +31,6 @@ All notable changes to this project are documented here. The format follows
 - Erasing a stroke right after drawing it, before its save had completed, brought it back once the
   save finished (and the server kept it). It now stays gone and is deleted on the server. Undoing
   an erase and then the drawing also removes the stroke again instead of leaving a copy (#7).
-- Quick successive edits of the same entry (for example adding a checklist item and ticking it
-  right away) could be saved out of order, so a reload showed the older state. Saves of one entry
-  are now sent one after another, newest last (#6).
-- Text typed into an open document, sticky note or checklist item was lost when the tab was closed,
-  reloaded or hidden before the editor lost focus. It is now saved at that moment (with `keepalive`,
-  so the request completes after the page is gone); the editor stays open (#9).
-- Erasing a stroke right after drawing it, before its save had completed, brought it back once the
-  save finished (and the server kept it). It now stays gone and is deleted on the server. Undoing
-  an erase and then the drawing also removes the stroke again instead of leaving a copy (#7).
 - Jump-to flights (search results, internal links, teleports) stopped after their first frame when
   the board was idle: the camera reaction set another atom inside signia's reaction cycle, which
   throws. The flag is now set in a microtask; a regression test covers the idle case.
