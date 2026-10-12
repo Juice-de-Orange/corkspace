@@ -10,12 +10,16 @@ ENV_FILE="${ENV_FILE:-$HERE/infra/.env}"
 set -a; [ -f "$ENV_FILE" ] && . "$ENV_FILE"; set +a
 
 BACKUP_DIR="${BACKUP_DIR:-$HOME/corkspace-backups}"
-DB_CONTAINER="${DB_CONTAINER:-corkspace-db-1}"
-ASSETS_VOLUME="${ASSETS_VOLUME:-corkspace_assets}"
+# shellcheck source=compose-names.sh
+. "$HERE/scripts/compose-names.sh"
 RETAIN="${RETAIN:-14}"
 PGUSER="${POSTGRES_USER:-corkspace}"
 PGDB="${POSTGRES_DB:-corkspace}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
+
+# `docker run -v <name>:…` would silently create an empty volume under a wrong name.
+docker volume inspect "$ASSETS_VOLUME" > /dev/null \
+  || { echo "[backup] assets volume $ASSETS_VOLUME does not exist — set ASSETS_VOLUME" >&2; exit 1; }
 
 mkdir -p "$BACKUP_DIR"
 

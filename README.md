@@ -122,6 +122,23 @@ The release was checked by hand from a fresh clone against the compose stack, bu
 `http://localhost` and in Chromium: operation behind a TLS reverse proxy, other browsers and the
 upgrade procedure in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) were not part of those checks.
 
+## Known limitations
+
+- **No e-mail.** Corkspace sends no mail; the `SMTP_*` variables are reserved and unused (#10).
+  What that means in practice:
+  - *Forgotten password:* there is no self-service reset, and users cannot change their own
+    password. An administrator sets a new one under **Admin → Users → (user) → New password** and
+    passes it on. If the only administrator is locked out, see
+    [DEPLOYMENT.md §4](docs/DEPLOYMENT.md#4-first-administrator) (a second admin account from
+    `ADMIN_EMAIL`).
+  - *New accounts:* the administrator chooses the initial password and hands it over outside the
+    app; nobody is told that an account exists.
+  - *Board invitations:* an owner can only invite people who already have an account; they are not
+    notified, the board simply appears in their board switcher.
+  - *Feedback:* new feedback is not announced; administrators look under **Admin → Feedback**.
+- Touch e2e tests are not automated yet (#11); the release checks ran in Chromium only, see
+  [Status](#status).
+
 ## Built with Claude Code
 
 Corkspace was built by [Claude Code](https://claude.com/claude-code) working through a phased

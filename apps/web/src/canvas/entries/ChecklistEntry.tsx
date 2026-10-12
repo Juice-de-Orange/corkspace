@@ -6,6 +6,7 @@ import { updateEntryContentCommand } from '../../commands/entry-commands'
 import { IconButton } from '../../components/ui'
 import { history } from '../../history/history'
 import { useT } from '../../i18n'
+import { onPageHide } from '../../lib/page-hide'
 import { type EntryMeta, entryContentRevAtom, recentlyCreatedIds } from '../state/entry-store'
 
 interface Item {
@@ -86,9 +87,24 @@ export function ChecklistEntry({
       return
     }
     const prev = itemsRef.current
+    textDirtyRef.current = false
     applyLocal(next)
     void history.execute(updateEntryContentCommand(meta.id, { items: prev }, { items: next }))
   }
+  const persistRef = useRef(persist)
+  persistRef.current = persist
+
+  // Item text persists on blur, and closing or hiding the tab fires no blur: save it then too.
+  const textDirtyRef = useRef(false)
+  useEffect(
+    () =>
+      onPageHide(() => {
+        if (textDirtyRef.current) {
+          persistRef.current(itemsRef.current)
+        }
+      }),
+    [],
+  )
 
   return (
     <div
@@ -129,6 +145,7 @@ export function ChecklistEntry({
               placeholder="…"
               onChange={(e) => {
                 editGenRef.current++
+                textDirtyRef.current = true
                 setItems((cur) =>
                   cur.map((i) => (i.id === item.id ? { ...i, text: e.target.value } : i)),
                 )

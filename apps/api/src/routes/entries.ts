@@ -50,7 +50,8 @@ export function entriesRoute(deps: AppDeps) {
     if (!parsed.success) {
       return c.json({ error: 'Invalid entry' }, 400)
     }
-    return c.json(await createEntry(db, boardId, user, parsed.data), 201)
+    const row = await createEntry(db, boardId, user, parsed.data)
+    return row ? c.json(row, 201) : c.json({ error: 'Unknown image asset' }, 400)
   })
 
   r.patch('/:id', requireBoardEditor, async (c) => {

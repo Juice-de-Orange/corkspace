@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { useT } from '../i18n'
+import { useValue } from 'signia-react'
+import { brandAtom } from '../lib/brand'
 
 /**
  * The board app header shell: keeps the load-bearing `app-header` class (drives z-index
@@ -18,11 +19,11 @@ export function AppHeader({ left, right }: { left: ReactNode; right: ReactNode }
 
 /** The brand lockup: a pin glyph always, the wordmark hidden on very narrow viewports. */
 export function AppBrand() {
-  const t = useT()
+  const brand = useValue(brandAtom)
   return (
     <span className="app-header-brand">
       <span aria-hidden="true">📌</span>
-      <span className="app-header-brand-text">{t('shell.brand')}</span>
+      <span className="app-header-brand-text">{brand}</span>
     </span>
   )
 }

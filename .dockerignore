@@ -7,6 +7,7 @@
 **/.vite
 .git
 *.log
-.env
-.env.*
-!.env.example
+# Env files hold secrets (infra/.env is the documented place): never in the build context.
+**/.env
+**/.env.*
+!**/.env.example

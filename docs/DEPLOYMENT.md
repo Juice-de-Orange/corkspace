@@ -14,7 +14,7 @@ plugin. TLS is terminated by a reverse proxy of your choice in front of the stac
 | `migrate` | `infra/Dockerfile.node` | One-shot: applies pending migrations, then exits |
 | `api` | `infra/Dockerfile.node` | Hono API + Better Auth on port 3000 (internal only) |
 | `worker` | `infra/Dockerfile.node` | Image processing queue (sharp, SSRF-safe downloads) |
-| `web` | `infra/Dockerfile.web` | nginx serving the built SPA and proxying `/api/` to `api`; published on `${WEB_PORT}` (default 8080) |
+| `web` | `infra/Dockerfile.web` | nginx serving the built SPA and proxying `/api/` to `api`; runs as the unprivileged user `nginx` (uid 101) and listens on 8080 inside the container, published on `${WEB_PORT}` (default 8080) |
 
 `api` and `worker` start only after `db` is healthy and `migrate` has completed successfully. Uploaded
 images live in the `assets` volume, shared by `api`, `worker` and (read-only) `web`.
@@ -43,12 +43,17 @@ Edit `infra/.env`. The backup scripts read `infra/.env` by default, so keep it t
 | `AUTH_TRUSTED_ORIGINS` | **yes** | Comma-separated origins allowed to call the auth endpoints; normally the same URL. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | **yes** | The first administrator (password at least 8 characters). See §4. |
 | `ADMIN_NAME` | no | Display name of the first administrator, default `Admin`. |
+| `BRAND_NAME` | no | Name of your instance in the header, on the sign-in page, in the browser tab and in export file names, default `Corkspace`. Read by the api at start; restart `api` after changing it. |
+| `COMPOSE_PROJECT_NAME` | no | Compose project name, default `corkspace` (from the compose file). It prefixes container, volume and network names; the backup scripts follow it. |
 | `WEB_PORT` | no | Host port of the `web` service, default 8080. |
+| `TRUSTED_PROXIES` | no | Addresses/CIDRs (space or comma separated) allowed to tell the `web` nginx the client address; default loopback and the private ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`). `none` trusts nobody. See §3. |
+| `REAL_IP_HEADER` | no | Header those proxies put the client address in, default `X-Forwarded-For`; `CF-Connecting-IP` behind a Cloudflare Tunnel. |
 
 `DATABASE_URL` is composed automatically inside the stack; set it only when you run the api or
 worker outside Compose. `API_PORT`, `ASSET_DIR` and `NODE_ENV` are fixed by the compose file. The
 `SMTP_*` variables are accepted by the configuration schema but not used yet — there are no
-outgoing emails; administrators reset passwords in `/admin`.
+outgoing emails (see "Known limitations" in the README); administrators set new passwords in
+`/admin`.
 
 Never commit `infra/.env`; it is ignored by `.gitignore`.
 
@@ -60,7 +65,7 @@ docker compose -f infra/docker-compose.yml --env-file infra/.env ps -a
 curl -fsS http://localhost:8080/api/health    # {"status":"ok","db":"up"}
 ```
 
-`migrate` should show `Exited (0)`; `db` and `api` should be `healthy`. Until `api` is healthy, `/api/`
+`migrate` should show `Exited (0)`; `db`, `api` and `web` should be `healthy`. Until `api` is healthy, `/api/`
 requests return 502 for a few seconds.
 
 ## 3. Put a reverse proxy with TLS in front
@@ -73,6 +78,18 @@ Point the proxy at `http://localhost:${WEB_PORT}`. Requirements:
 - Forward `Host`, `X-Forwarded-For` and `X-Forwarded-Proto`.
 - If a CDN sits in front, do not cache `index.html`; everything under `/static/` is content-hashed
   and safe to cache forever.
+
+**Client address and the sign-in limit.** Sign-in is limited to 3 attempts per 10 seconds per client
+address. The `web` nginx works out that address and passes it to the api as `X-Real-IP` (always
+overwritten, so a visitor cannot pick it). It takes the address from `REAL_IP_HEADER`
+(`X-Forwarded-For` by default) only when the connection comes from `TRUSTED_PROXIES`, and walks the
+header from the right, skipping trusted hops, so a value a visitor puts at the front is ignored. The
+default trusts loopback and the private ranges, where a proxy on the same host (through Docker's
+bridge) or a tunnel container connects from; Caddy and the nginx example below need no change.
+Narrow `TRUSTED_PROXIES` to your proxy's address if untrusted machines on a private network can
+reach `WEB_PORT` directly, since anything that is trusted can claim any client address. Behind a
+Cloudflare Tunnel set `REAL_IP_HEADER=CF-Connecting-IP`. If the address is wrong, every visitor
+shares one limit and a failed-login burst blocks sign-in for everyone for a few seconds.
 
 **Caddy** (obtains and renews certificates automatically):
 
@@ -120,7 +137,7 @@ untracked override file and pass it as a second `-f`:
 services:
   web:
     ports: !override
-      - "127.0.0.1:8080:80"
+      - "127.0.0.1:8080:8080"
 ```
 
 ```bash
@@ -128,6 +145,7 @@ docker compose -f infra/docker-compose.yml -f infra/docker-compose.local.yml --e
 ```
 
 A tunnel (Cloudflare Tunnel, Tailscale Funnel, …) works the same way: point it at the `web` service
+on port **8080** (for example `http://corkspace-web-1:8080` from a container on the same network)
 and keep the public URL in `BETTER_AUTH_URL`.
 
 ## 4. First administrator
@@ -136,6 +154,14 @@ On every start the api checks whether an account with `ADMIN_EMAIL` exists. If n
 as an administrator with `ADMIN_PASSWORD` and `ADMIN_NAME` and gives it a personal board ("My
 board"). If the account exists, nothing is changed — editing `ADMIN_PASSWORD` later does **not**
 reset the password; change it in `/admin` instead.
+
+**Locked out?** There is no e-mail reset. If the only administrator has lost the password, create a
+second administrator the same way: set `ADMIN_EMAIL` to an address that has no account yet and
+`ADMIN_PASSWORD` to a new password in `infra/.env`, then
+`docker compose -f infra/docker-compose.yml --env-file infra/.env up -d` (the api is recreated and
+creates that account on start). Sign in with it, set a new password for the old account under
+**Admin → Users**, sign in with the old account, delete the helper account there, and put the old
+`ADMIN_EMAIL` back into `infra/.env` — otherwise the next start creates the helper account again.
 
 Sign in at `https://corkspace.example.com/login`, then open `/admin` to create further accounts.
 Open sign-up is disabled; every account gets its own board, and board owners invite others as
@@ -150,15 +176,23 @@ keeps the newest copies of each.
 bash scripts/backup.sh
 ```
 
+The scripts find the containers and the assets volume through Compose
+(`docker compose -f infra/docker-compose.yml --env-file infra/.env ps`), so they follow the project
+name, including `COMPOSE_PROJECT_NAME` set in `infra/.env`. If you start the stack with `-p <name>`
+on the command line instead, export `COMPOSE_PROJECT_NAME=<name>` for the scripts as well.
+
 Defaults (override with environment variables):
 
 | Variable | Default |
 |---|---|
-| `ENV_FILE` | `infra/.env` (read for `POSTGRES_USER` / `POSTGRES_DB`) |
+| `ENV_FILE` | `infra/.env` (read for `POSTGRES_USER` / `POSTGRES_DB` and the project name) |
 | `BACKUP_DIR` | `$HOME/corkspace-backups` |
-| `DB_CONTAINER` | `corkspace-db-1` |
-| `ASSETS_VOLUME` | `corkspace_assets` |
+| `DB_CONTAINER` | the `db` container of the compose project (`corkspace-db-1` if none is found) |
+| `ASSETS_VOLUME` | `<project>_assets`, e.g. `corkspace_assets` |
 | `RETAIN` | `14` (per kind) |
+
+The backup stops with an error if the assets volume does not exist, instead of archiving an empty
+volume.
 
 Output: `db-<YYYYmmdd-HHMMSS>.dump` and `assets-<YYYYmmdd-HHMMSS>.tgz`. The stack must be running.
 Schedule it with cron, for example daily at 03:30:
@@ -180,10 +214,10 @@ database and replaces the entire contents of the assets volume. Before it change
 checks that both files exist, that `pg_restore` can read the dump and that the tarball lists; if
 not, it stops with "nothing was changed". It then stops the `api` and `worker` containers, restores,
 and starts them again (also when the restore fails half-way), so the instance answers 502 for the
-duration. It uses the same `ENV_FILE`, `DB_CONTAINER` and `ASSETS_VOLUME` defaults as the backup
-script, plus `API_CONTAINER` (`corkspace-api-1`) and `WORKER_CONTAINER` (`corkspace-worker-1`); if
-your containers have other names and you do not set these, restart `api` and `worker` yourself
-afterwards. Rehearse a restore on a test stack before you need it.
+duration. It finds the containers and the volume the same way as the backup script (same
+`ENV_FILE`, `DB_CONTAINER` and `ASSETS_VOLUME` overrides), plus `API_CONTAINER` and
+`WORKER_CONTAINER` for the `api` and `worker` services; if it finds neither running, it says so and
+you restart them yourself afterwards. Rehearse a restore on a test stack before you need it.
 
 ## 7. Upgrading
 
@@ -214,7 +248,7 @@ back, restore the backup taken before the upgrade.
   started without it, they exit and Docker restarts them until it is there.
 - The internal nginx re-resolves the `api` container on every request, so restarting `api` does not
   require restarting `web`.
-- Login is rate-limited in production (Better Auth).
+- Login is rate-limited in production (Better Auth), per client address — see §3.
 - To wipe all board content but keep accounts, boards and settings (for example after a demo), run
   the guarded CLI inside the stack — back up first:
   `docker compose -f infra/docker-compose.yml --env-file infra/.env run --rm migrate pnpm --filter @corkspace/db exec tsx src/reset-content-cli.ts --yes`

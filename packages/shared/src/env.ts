@@ -21,6 +21,9 @@ export const envSchema = z.object({
   ADMIN_PASSWORD: z.string().min(8, 'ADMIN_PASSWORD must be at least 8 chars'),
   ADMIN_NAME: z.string().default('Admin'),
 
+  // Name shown in the header, on the sign-in page and in the browser tab.
+  BRAND_NAME: z.string().trim().min(1).max(60).default('Corkspace'),
+
   API_PORT: z.coerce.number().int().positive().default(3000),
   WEB_ORIGIN: z.string().url().optional(),
   ASSET_DIR: z.string().default('./.assets'),

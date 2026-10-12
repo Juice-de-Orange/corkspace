@@ -14,16 +14,27 @@ async function login(page: Page): Promise<void> {
   await resetCamera(page)
 }
 
+/** Click a create button and return the id the server gave the new entry. */
+async function createAndGetId(page: Page, button: string): Promise<string> {
+  const created = page.waitForResponse(
+    (r) => r.request().method() === 'POST' && /\/entries$/.test(new URL(r.url()).pathname),
+  )
+  await page.getByRole('button', { name: button }).click()
+  return ((await (await created).json()) as { id: string }).id
+}
+
 test('create a sticky → it appears → reload → it persists', async ({ page }) => {
   await login(page)
-  await page.getByRole('button', { name: '+ Notiz' }).click()
-  await expect(page.locator('[data-entry-id]').first()).toBeVisible()
+  // Follow the new sticky by its server id. Earlier tests leave entries on the shared board, and on a
+  // narrow viewport the first one in the DOM can sit in the overscan ring: mounted but display:none.
+  const id = await createAndGetId(page, '+ Notiz')
+  await expect(page.locator(`[data-entry-id="${id}"]`)).toBeVisible()
 
-  await page.waitForTimeout(500) // allow the create round-trip to persist
+  // The entry is only inserted from the server's 201 response, so it is persisted by now.
   await page.reload()
   await expect(page.locator('.position-readout')).toBeVisible()
-  // metadata is reloaded from the server → at least one entry remains
-  await expect(page.locator('[data-entry-id]').first()).toBeVisible()
+  // metadata is reloaded from the server → the same entry is back
+  await expect(page.locator(`[data-entry-id="${id}"]`)).toBeVisible()
 })
 
 test('edit a sticky → its text persists across reload', async ({ page }, testInfo) => {
@@ -124,6 +135,45 @@ test('create a checklist, add + check an item, persists across reload', async ({
   await expect(reloaded.locator('input[type="checkbox"]').first()).toBeChecked()
 })
 
+test('overlapping saves of one entry keep the latest state (#6)', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.startsWith('mobile'), 'touch interactions land in Phase 6')
+  await login(page)
+  // Find the new checklist by the id the server returns (independent of what the shared board holds).
+  const created = page.waitForResponse(
+    (r) => r.request().method() === 'POST' && /\/entries$/.test(new URL(r.url()).pathname),
+  )
+  await page.getByRole('button', { name: '+ Liste' }).click()
+  const { id } = (await (await created).json()) as { id: string }
+  const list = page.locator(`[data-entry-id="${id}"]`)
+  await expect(list).toBeVisible()
+
+  // Hold the FIRST save of this entry back, so the second save would overtake it on the wire.
+  let patches = 0
+  await page.route(new RegExp(`/entries/${id}$`), async (route) => {
+    if (route.request().method() === 'PATCH' && ++patches === 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+    }
+    await route.continue()
+  })
+  const settled = page.waitForResponse(
+    (r) => r.request().method() === 'PATCH' && new URL(r.url()).pathname.endsWith(id),
+  )
+  // dispatchEvent: other checklists from earlier runs may sit on top of this one at the centre.
+  await list.getByRole('button', { name: '+ Punkt' }).dispatchEvent('click') // save 1: unchecked
+  const box = list.locator('input[type="checkbox"]').first()
+  await expect(box).toBeVisible()
+  await box.dispatchEvent('click') // save 2: checked
+  await expect(box).toBeChecked()
+  await settled
+  await expect.poll(() => patches).toBe(2)
+  await page.waitForTimeout(2500) // both saves have reached the server
+
+  await page.reload()
+  const reloaded = page.locator(`[data-entry-id="${id}"] input[type="checkbox"]`)
+  await expect(reloaded).toHaveCount(1)
+  await expect(reloaded).toBeChecked()
+})
+
 test('create a link card from a URL (SSRF-blocked target degrades gracefully)', async ({
   page,
 }, testInfo) => {
@@ -141,9 +191,11 @@ test('create a link card from a URL (SSRF-blocked target degrades gracefully)', 
 test('create a rich document, type text, persists across reload', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.startsWith('mobile'), 'touch editing lands in Phase 6')
   await login(page)
-  await page.getByRole('button', { name: '+ Dok' }).click()
-  // other tests may leave doc entries on the shared board → assert the new (topmost) one
-  await expect(page.locator('.entry-doc').first()).toBeVisible()
+  // Wait for THIS doc: other tests leave doc entries on the shared board, so a plain `.entry-doc`
+  // check passes before the new one exists and the double-click below would hit another entry.
+  const id = await createAndGetId(page, '+ Dok')
+  const doc = page.locator(`[data-entry-id="${id}"]`)
+  await expect(doc).toBeVisible()
 
   const box = await page.locator('.canvas-root').boundingBox()
   if (!box) {
@@ -151,7 +203,7 @@ test('create a rich document, type text, persists across reload', async ({ page 
   }
   // double-click the centered (topmost) doc to edit, type, then blur on an empty corner
   await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2)
-  const editor = page.locator('.entry-doc .ProseMirror')
+  const editor = doc.locator('.ProseMirror')
   await expect(editor).toBeVisible()
   await editor.click()
   await page.keyboard.type('Mein Dokument')
@@ -159,7 +211,54 @@ test('create a rich document, type text, persists across reload', async ({ page 
 
   await page.waitForTimeout(700)
   await page.reload()
-  await expect(page.getByText('Mein Dokument').first()).toBeVisible()
+  await expect(page.locator(`[data-entry-id="${id}"]`)).toContainText('Mein Dokument')
+})
+
+test('text typed into an open document survives a reload without blur (#9)', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name.startsWith('mobile'), 'touch editing lands in Phase 6')
+  await login(page)
+  const id = await createAndGetId(page, '+ Dok')
+  const doc = page.locator(`[data-entry-id="${id}"]`)
+  await doc.dblclick()
+  const editor = doc.locator('.ProseMirror')
+  await expect(editor).toBeVisible()
+  await editor.click()
+  const text = `Unsaved draft ${Date.now()}`
+  await page.keyboard.type(text)
+  // Hiding the tab saves the draft but leaves the editor open with its text and cursor.
+  const draftSaved = page.waitForResponse(
+    (r) => r.request().method() === 'PATCH' && new URL(r.url()).pathname.endsWith(id),
+  )
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' })
+    document.dispatchEvent(new Event('visibilitychange'))
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await draftSaved
+  await expect(editor).toBeVisible()
+  await page.keyboard.type(' and more')
+  // No blur, no wait: the page goes away while the editor is still open.
+  await page.reload()
+  await expect(page.locator(`[data-entry-id="${id}"]`)).toContainText(`${text} and more`)
+})
+
+test('text typed into an open sticky survives a reload without blur (#9)', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name.startsWith('mobile'), 'touch editing lands in Phase 6')
+  await login(page)
+  const id = await createAndGetId(page, '+ Notiz')
+  const sticky = page.locator(`[data-entry-id="${id}"]`)
+  await sticky.dblclick()
+  const textarea = sticky.locator('textarea')
+  await expect(textarea).toBeFocused()
+  const text = `Sticky draft ${Date.now()}`
+  await page.keyboard.type(text)
+  await page.reload()
+  await expect(page.locator(`[data-entry-id="${id}"]`)).toContainText(text)
 })
 
 test('undo/redo and Ctrl+C/V duplicate via the command stack', async ({ page }, testInfo) => {

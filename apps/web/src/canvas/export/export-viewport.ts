@@ -4,6 +4,8 @@
  * `data-export-ignore` (toolbars, dashboard, minimap, readout) is excluded from the capture.
  */
 
+import { brandAtom, brandFileStem } from '../../lib/brand'
+
 const CORK_BG = '#cfc9bd'
 
 function excludeChrome(node: HTMLElement): boolean {
@@ -47,14 +49,18 @@ function downloadDataUrl(dataUrl: string, filename: string): void {
   a.remove()
 }
 
-export async function exportViewportPng(filename = 'corkspace.png'): Promise<void> {
+export async function exportViewportPng(
+  filename = `${brandFileStem(brandAtom.value)}.png`,
+): Promise<void> {
   const url = await captureViewportPng()
   if (url) {
     downloadDataUrl(url, filename)
   }
 }
 
-export async function exportViewportPdf(filename = 'corkspace.pdf'): Promise<void> {
+export async function exportViewportPdf(
+  filename = `${brandFileStem(brandAtom.value)}.pdf`,
+): Promise<void> {
   const root = document.querySelector<HTMLElement>('.canvas-root')
   if (!root) {
     return

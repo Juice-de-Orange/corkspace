@@ -10,6 +10,7 @@ x-app-env: &app-env
   ADMIN_EMAIL: ${ADMIN_EMAIL}
   ADMIN_PASSWORD: ${ADMIN_PASSWORD}
   ADMIN_NAME: ${ADMIN_NAME:-Admin}
+  BRAND_NAME: ${BRAND_NAME:-Corkspace}
   ASSET_DIR: /data/assets
 
 services:
@@ -87,10 +88,19 @@ services:
       dockerfile: infra/Dockerfile.web
     depends_on:
       - api
+    environment:
+      # Which proxies may tell nginx the client address, and in which header (infra/nginx-real-ip.sh).
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      REAL_IP_HEADER: ${REAL_IP_HEADER:-}
     ports:
-      - "${WEB_PORT:-8080}:80"
+      - "${WEB_PORT:-8080}:8080"
     volumes:
       - assets:/data/assets:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
     restart: unless-stopped
 
 volumes:
