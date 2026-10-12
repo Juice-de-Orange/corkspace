@@ -32,6 +32,14 @@ function loop(x: number, y: number, w: number, h: number): number[][] {
   return pts
 }
 
+/**
+ * Where the content is laid out. A first visit opens at the default camera (world origin at the
+ * top-left of the canvas, 100 %), where the create toolbar runs along the top and the Places panel
+ * sits on the left: the seed starts right of and below them, so nothing in that first view is
+ * covered.
+ */
+const ORIGIN = { x: 190, y: 180 }
+
 /** Fill the board `boardId` with the demo content. Run it on an empty board (no deduplication). */
 export async function seedDemoBoard(call: ApiCall, boardId: string): Promise<void> {
   const b = `/api/boards/${boardId}`
@@ -47,8 +55,8 @@ export async function seedDemoBoard(call: ApiCall, boardId: string): Promise<voi
   ): Promise<string> => {
     const created = await call('POST', `${b}/entries`, {
       type,
-      x,
-      y,
+      x: ORIGIN.x + x,
+      y: ORIGIN.y + y,
       width,
       height,
       content,
@@ -58,14 +66,11 @@ export async function seedDemoBoard(call: ApiCall, boardId: string): Promise<voi
     return String(created.id)
   }
 
+  const frame = (name: string, x: number, y: number, width: number, height: number) =>
+    call('POST', `${b}/frames`, { name, x: ORIGIN.x + x, y: ORIGIN.y + y, width, height })
+
   // --- A trip -------------------------------------------------------------------------------
-  await call('POST', `${b}/frames`, {
-    name: 'Trip to the coast',
-    x: -60,
-    y: -90,
-    width: 1200,
-    height: 800,
-  })
+  await frame('Trip to the coast', -60, -90, 1200, 800)
   const trip = await entry(
     'sticky',
     0,
@@ -106,19 +111,13 @@ export async function seedDemoBoard(call: ApiCall, boardId: string): Promise<voi
   await call('POST', `${b}/connections`, { fromEntryId: route, toEntryId: ferry, label: 'day 1' })
   await call('POST', `${b}/connections`, { fromEntryId: trip, toEntryId: packing })
   await call('POST', `${b}/strokes`, {
-    points: loop(755, 305, 290, 290),
+    points: loop(ORIGIN.x + 755, ORIGIN.y + 305, 290, 290),
     color: '#dc2626',
     size: 6,
   })
 
   // --- A recipe -----------------------------------------------------------------------------
-  await call('POST', `${b}/frames`, {
-    name: 'Sunday baking',
-    x: 1180,
-    y: -90,
-    width: 800,
-    height: 800,
-  })
+  await frame('Sunday baking', 1180, -90, 800, 800)
   const cake = await entry('sticky', 1220, 0, 240, 240, { text: 'Plum cake\nfor Sunday' }, 'orange')
   const recipe = await entry('doc', 1520, 0, 400, 520, {
     doc: {
@@ -142,13 +141,7 @@ export async function seedDemoBoard(call: ApiCall, boardId: string): Promise<voi
   await call('POST', `${b}/connections`, { fromEntryId: recipe, toEntryId: shopping, label: 'buy' })
 
   // --- A small project ----------------------------------------------------------------------
-  await call('POST', `${b}/frames`, {
-    name: 'Garden shed project',
-    x: -60,
-    y: 760,
-    width: 2040,
-    height: 860,
-  })
+  await frame('Garden shed project', -60, 760, 2040, 860)
   const columns = ['To do', 'Doing', 'Done']
   const cards: string[][] = [
     ['Measure the plot', 'Order timber', 'Ask about the permit'],
