@@ -31,6 +31,11 @@ All notable changes to this project are documented here. The format follows
 - Erasing a stroke right after drawing it, before its save had completed, brought it back once the
   save finished (and the server kept it). It now stays gone and is deleted on the server. Undoing
   an erase and then the drawing also removes the stroke again instead of leaving a copy (#7).
+- The sign-in rate limit is kept per client address. Better Auth read `X-Forwarded-For`, which a
+  visitor can forge (fresh attempts per forged value), and behind a reverse proxy the chain had two
+  entries, so it found no address and all visitors shared one bucket: a few failed sign-ins locked
+  everyone out for a few seconds. nginx now resolves the client behind `TRUSTED_PROXIES` from
+  `REAL_IP_HEADER` and passes it as `X-Real-IP`, the only header the api uses for this.
 - Jump-to flights (search results, internal links, teleports) stopped after their first frame when
   the board was idle: the camera reaction set another atom inside signia's reaction cycle, which
   throws. The flag is now set in a microtask; a regression test covers the idle case.
