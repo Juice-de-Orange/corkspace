@@ -72,12 +72,18 @@ ADMIN_PASSWORD=$(openssl rand -hex 16)
 DEMO_URL=https://demo.example.com
 DEMO_CLIENT_IP_HEADER=CF-Connecting-IP
 ENV
-docker compose -f infra/docker-compose.demo.yml --env-file infra/.env.demo up -d --build
+docker compose -f infra/docker-compose.demo.yml --env-file infra/.env.demo up -d
 ```
 
 `DEMO_URL` is the address visitors open (Better Auth checks it). For a local try use
 `DEMO_URL=http://localhost:8090` and leave `DEMO_CLIENT_IP_HEADER` out. All `DEMO_*` limits above
 can be set in the same file; `DEMO_PORT` changes the published port.
+
+The stack runs the released images `ghcr.io/juice-de-orange/corkspace-{api,web}`, the same ones a
+normal instance pulls (see [DEPLOYMENT.md §2](DEPLOYMENT.md#2-start)). `CORKSPACE_VERSION` in
+`infra/.env.demo` picks the tag (default `latest`; e.g. `CORKSPACE_VERSION=0.1.0` pins a release). To
+run the demo from your checkout instead, for example with local changes, add `--build`: Compose then
+builds both images from source.
 
 The stack (Compose project `corkspace-demo`) runs `db`, `migrate`, `api`, `web` and `reset`:
 
