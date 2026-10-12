@@ -28,6 +28,19 @@ export const envSchema = z.object({
   WEB_ORIGIN: z.string().url().optional(),
   ASSET_DIR: z.string().default('./.assets'),
 
+  // Public demo (docs/demo.md): every visitor gets a private copy of the seed board; accounts,
+  // uploads and link fetching are off; the limits below hold. Off unless exactly "on".
+  DEMO_MODE: z.enum(['on', 'off']).default('off'),
+  // Header that carries the visitor's address. Our nginx sets X-Real-IP; behind a tunnel that
+  // connects to nginx locally, use the tunnel's header (e.g. CF-Connecting-IP).
+  DEMO_CLIENT_IP_HEADER: z.string().trim().toLowerCase().min(1).default('x-real-ip'),
+  DEMO_RATE_LIMIT: z.coerce.number().int().positive().default(240), // requests per IP and minute
+  DEMO_GUESTS_PER_IP: z.coerce.number().int().positive().default(20), // new guests per IP and hour
+  DEMO_MAX_GUESTS: z.coerce.number().int().positive().default(500),
+  DEMO_MAX_OBJECTS: z.coerce.number().int().positive().default(200), // per board, all kinds
+  DEMO_MAX_BODY_BYTES: z.coerce.number().int().positive().default(16_384),
+  DEMO_MAX_DB_MB: z.coerce.number().int().positive().default(1024),
+
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),

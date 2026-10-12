@@ -14,6 +14,7 @@ import { SharePanel } from '../components/SharePanel'
 import { IconButton, Menu } from '../components/ui'
 import { langAtom, langIcon, toggleLang, useT } from '../i18n'
 import { signOut, useSession } from '../lib/auth-client'
+import { demoAtom } from '../lib/brand'
 import { themeAtom, themeIcon, toggleTheme } from '../lib/theme'
 import { useMediaQuery } from '../lib/use-media-query'
 
@@ -31,6 +32,8 @@ export function Shell() {
   const role = useValue(userRoleAtom)
   const narrow = useMediaQuery('(max-width: 760px)')
   const [shareOpen, setShareOpen] = useState(false)
+  // The public demo refuses sharing and feedback on the server; do not offer them either.
+  const demo = useValue(demoAtom)
 
   const { ready, error } = useLoadBoard(boardId ? { kind: 'board', boardId } : null)
   useCameraPersistence()
@@ -50,7 +53,7 @@ export function Shell() {
   // (data-theme-toggle) and Abmelden stay inline at EVERY width (asserted by auth/appearance e2e).
   const secondary = (close?: () => void) => (
     <>
-      {access?.level === 'owner' && (
+      {access?.level === 'owner' && !demo && (
         <button
           type="button"
           className={close ? 'menu-item' : 'btn btn-ghost'}
@@ -84,7 +87,7 @@ export function Shell() {
           {t('shell.admin')}
         </button>
       )}
-      <FeedbackButton />
+      {!demo && <FeedbackButton />}
     </>
   )
 

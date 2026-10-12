@@ -17,4 +17,7 @@ COPY . .
 RUN pnpm install --frozen-lockfile --prod
 
 ENV NODE_ENV=production
+# `demo-reset`: restore a public demo (DEMO_MODE=on) to its seed state — docs/demo.md.
+RUN printf '#!/bin/sh\ncd /app/apps/api && exec node --import tsx src/demo/reset-cli.ts "$@"\n' \
+    > /usr/local/bin/demo-reset && chmod 755 /usr/local/bin/demo-reset
 CMD ["node", "--version"]

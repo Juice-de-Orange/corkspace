@@ -124,7 +124,9 @@ Breaking one of these is a bug even if the tests still pass.
 - Viewers and share links see `public` entries only — including connections and anchored strokes
   that touch a private entry. The `/api/public/:token/*` tree is GET-only.
 - Every new route gets an integration test per access level that asserts on the response body.
-- Open sign-up stays disabled; accounts are created by administrators.
+- Open sign-up stays disabled; accounts are created by administrators. The only exception is the
+  public demo (`DEMO_MODE=on`, ADR 0008): throwaway guest accounts that own nothing but a copy of
+  the demo board.
 
 **Client state**
 - No `localStorage`/`sessionStorage`/IndexedDB for board state, selection, undo history or the

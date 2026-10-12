@@ -93,7 +93,9 @@ infra            docker-compose, Dockerfiles, nginx
 ```
 
 The decisions behind the canvas engine, the data model and the security rules are in
-[docs/DESIGN.md](docs/DESIGN.md) and the [architecture decision records](docs/adr/).
+[docs/DESIGN.md](docs/DESIGN.md) and the [architecture decision records](docs/adr/). A public
+try-it-yourself instance (guest boards, hourly reset) runs with `DEMO_MODE=on`, see
+[docs/demo.md](docs/demo.md).
 
 ## Development
 
