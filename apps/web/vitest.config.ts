@@ -19,11 +19,14 @@ export default defineConfig({
       // it locks in the current floor so tests can't silently disappear. Phase 2 adds
       // `src/components/ui/**` (shared primitives that MUST be unit-tested) with a scoped, higher
       // threshold, and this floor is raised as unit coverage grows. See docs/adr/.
+      // Re-baselined for @vitest/coverage-v8 4: v3 left functions/branches of files no test loads
+      // out of the totals (hence 38/48 % next to 5 % statements); v4 counts them, so the same tests
+      // measure 11.25 % functions and 12.84 % branches. The ratchet is set just below that.
       thresholds: {
         statements: 5,
         lines: 5,
-        functions: 38,
-        branches: 48,
+        functions: 11,
+        branches: 12,
       },
     },
   },

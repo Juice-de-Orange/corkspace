@@ -1,3 +1,6 @@
+/// <reference types="node" />
+// Server-side env parsing reads process.env; the web app type-checks this file through its imports
+// of @corkspace/shared and must not depend on a test runner to bring the node types along.
 import { z } from 'zod'
 
 /**
