@@ -1,6 +1,10 @@
 # Public demo of Corkspace (DEMO_MODE=on) — see docs/demo.md.
 #
-#   docker compose -f infra/docker-compose.demo.yml --env-file infra/.env.demo up -d --build
+#   docker compose -f infra/docker-compose.demo.yml --env-file infra/.env.demo up -d
+#
+# Images: like infra/docker-compose.yml it pulls the released GHCR images (CORKSPACE_VERSION, default
+# latest) and builds them from this checkout only when they cannot be pulled; `--build` always builds
+# from source.
 #
 # Separate from a normal instance: its own project name, networks and volume. The only host port is
 # the web container's, bound to 127.0.0.1 for a tunnel or reverse proxy on the same host. The api,
@@ -40,12 +44,12 @@ x-app-env: &app-env
   DEMO_MAX_BODY_BYTES: ${DEMO_MAX_BODY_BYTES:-16384}
   DEMO_MAX_DB_MB: ${DEMO_MAX_DB_MB:-1024}
 
-# One image for migrate, api and the reset scheduler (built once, then reused from the cache).
+# One image for migrate, api and the reset scheduler: the released api image (or one local build).
 x-node: &node
+  image: ghcr.io/juice-de-orange/corkspace-api:${CORKSPACE_VERSION:-latest}
   build:
     context: ..
     dockerfile: infra/Dockerfile.node
-  image: corkspace-demo-node:local
   user: node
   environment: *app-env
   networks: [backend]
@@ -134,10 +138,10 @@ services:
         limits: { cpus: "0.50", memory: 256M, pids: 64 }
 
   web:
+    image: ghcr.io/juice-de-orange/corkspace-web:${CORKSPACE_VERSION:-latest}
     build:
       context: ..
       dockerfile: infra/Dockerfile.web
-    image: corkspace-demo-web:local
     environment:
       DEMO_MODE: "on"
     depends_on:

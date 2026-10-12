@@ -1,7 +1,10 @@
-# Blank issues are off: bugs, features and questions each have a form. Add a contact link to
-# GitHub Discussions here once Discussions are enabled for the repository.
+# Blank issues are off: bugs, features and questions each have a form; open-ended talk goes to
+# GitHub Discussions.
 blank_issues_enabled: false
 contact_links:
+  - name: Ask and discuss
+    url: https://github.com/Juice-de-Orange/corkspace/discussions
+    about: Questions, ideas and show-and-tell in GitHub Discussions.
   - name: Report a security vulnerability
     url: https://github.com/Juice-de-Orange/corkspace/security/advisories/new
     about: Please report security problems privately, not as a public issue.
