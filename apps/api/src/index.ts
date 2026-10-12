@@ -3,6 +3,7 @@ import { parseEnv } from '@corkspace/shared'
 import { serve } from '@hono/node-server'
 import { buildApp } from './app'
 import { makeAuth } from './auth'
+import { ensureDemoTemplate } from './demo/template'
 import { seedAdmin } from './seed/admin'
 import { ensurePersonalBoard } from './services/board-access'
 
@@ -21,6 +22,11 @@ console.log(seeded.created ? `seeded admin ${env.ADMIN_EMAIL}` : 'admin already 
 await ensurePersonalBoard(db, seeded.userId, 'My board')
 
 const auth = makeAuth(db, env)
+if (env.DEMO_MODE === 'on') {
+  // The board every visitor gets a copy of; built from the seed on the first start.
+  await ensureDemoTemplate(db, env, auth)
+  console.log('demo mode on: guest boards, no sign-in, uploads and link previews off')
+}
 const app = buildApp({ db, env, auth })
 
 const server = serve({ fetch: app.fetch, port: env.API_PORT }, (info) => {

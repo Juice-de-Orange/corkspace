@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "dev": "tsx watch src/index.ts",
     "seed:demo": "tsx src/seed/demo-cli.ts",
+    "demo:reset": "tsx src/demo/reset-cli.ts",
     "build": "tsup src/index.ts --format esm --target node22 --clean",
     "test:integration": "vitest run --coverage"
   },
