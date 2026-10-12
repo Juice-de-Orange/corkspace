@@ -29,9 +29,10 @@ docker compose up -d
 Open <http://localhost:8080> and sign in with the address and password `./setup` printed.
 `docker compose up -d` pulls the release images `ghcr.io/juice-de-orange/corkspace-{api,worker,web}`
 (amd64 and arm64, published from v0.1.0 on); if it cannot pull them, it prints "denied" warnings
-and builds them from this checkout instead. Built from source on a clean Docker host (8 CPU cores,
-no cached images), the sign-in page was up **about 2½ minutes** after `git clone` (measured
-2026-10-12: 140 s).
+and builds them from this checkout instead. With the release images pulled and `postgres:16-alpine`
+already cached, the sign-in page was up **about 1½ minutes** after `git clone` (measured
+2026-10-12 in two runs: 82 s and 101 s). Building from source takes longer: 140 s on a clean
+Docker host (8 CPU cores, no cached images).
 
 To see a filled board right away, add the synthetic demo board from the GIF to your (empty) board:
 `docker compose --profile demo run --rm seed`. There is no public sign-up — you create further
