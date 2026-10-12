@@ -16,8 +16,10 @@ plugin. TLS is terminated by a reverse proxy of your choice in front of the stac
 | `worker` | `infra/Dockerfile.node` | Image processing queue (sharp, SSRF-safe downloads) |
 | `web` | `infra/Dockerfile.web` | nginx serving the built SPA and proxying `/api/` to `api`; runs as the unprivileged user `nginx` (uid 101) and listens on 8080 inside the container, published on `${WEB_PORT}` (default 8080) |
 
-`api` and `worker` start only after `db` is healthy and `migrate` has completed successfully. Uploaded
-images live in the `assets` volume, shared by `api`, `worker` and (read-only) `web`.
+`api` and `worker` start only after `db` is healthy and `migrate` has completed successfully;
+`web` starts only once `api` is healthy, so a fresh start never serves the sign-in page while `/api/`
+still answers 502. Uploaded images live in the `assets` volume, shared by `api`, `worker` and
+(read-only) `web`.
 
 The `web` nginx already sends the security headers (CSP, HSTS, `X-Content-Type-Options`,
 `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`), serves the hashed bundle under
@@ -77,8 +79,7 @@ curl -fsS http://localhost:8080/api/health    # {"status":"ok","db":"up"}
 `.github/workflows/release.yml` on every version tag) and builds from the checkout only if a pull
 fails; `--build` always builds from source.
 
-`migrate` should show `Exited (0)`; `db`, `api` and `web` should be `healthy`. Until `api` is healthy, `/api/`
-requests return 502 for a few seconds.
+`migrate` should show `Exited (0)`; `db`, `api` and `web` should be `healthy`.
 
 ## 3. Put a reverse proxy with TLS in front
 
