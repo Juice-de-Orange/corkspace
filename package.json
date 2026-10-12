@@ -25,7 +25,8 @@
     "verify:full": "pnpm run verify && pnpm run verify:security && turbo run test:e2e test:perf",
     "db:generate": "pnpm --filter @corkspace/db run db:generate",
     "db:migrate": "pnpm --filter @corkspace/db run db:migrate",
-    "db:seed-demo": "pnpm --filter @corkspace/api run seed:demo"
+    "db:seed-demo": "pnpm --filter @corkspace/api run seed:demo",
+    "demo:reset": "pnpm --filter @corkspace/api run demo:reset"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",

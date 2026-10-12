@@ -35,6 +35,25 @@ describe('parseEnv', () => {
   it('rejects a short secret', () => {
     expect(() => parseEnv({ ...base, BETTER_AUTH_SECRET: 'short' })).toThrow(/BETTER_AUTH_SECRET/)
   })
+
+  it('keeps the demo mode off by default, with conservative limits', () => {
+    const env = parseEnv(base)
+    expect(env.DEMO_MODE).toBe('off')
+    expect(env.DEMO_CLIENT_IP_HEADER).toBe('x-real-ip')
+    expect(env.DEMO_RATE_LIMIT).toBe(240)
+    expect(env.DEMO_GUESTS_PER_IP).toBe(20)
+    expect(env.DEMO_MAX_GUESTS).toBe(500)
+    expect(env.DEMO_MAX_OBJECTS).toBe(200)
+    expect(env.DEMO_MAX_BODY_BYTES).toBe(16_384)
+    expect(env.DEMO_MAX_DB_MB).toBe(1024)
+  })
+
+  it('turns the demo mode on only for "on" and lower-cases the client-IP header', () => {
+    const env = parseEnv({ ...base, DEMO_MODE: 'on', DEMO_CLIENT_IP_HEADER: 'CF-Connecting-IP' })
+    expect(env.DEMO_MODE).toBe('on')
+    expect(env.DEMO_CLIENT_IP_HEADER).toBe('cf-connecting-ip')
+    expect(() => parseEnv({ ...base, DEMO_MODE: 'true' })).toThrow(/DEMO_MODE/)
+  })
 })
 
 describe('parseTrustedOrigins', () => {

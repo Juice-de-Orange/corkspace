@@ -3,6 +3,8 @@ import type { Env } from '@corkspace/shared'
 import { Hono } from 'hono'
 import { secureHeaders } from 'hono/secure-headers'
 import type { Auth } from './auth'
+import { demoGate, demoObjectLimit } from './demo/guard'
+import { demoSessionRoute } from './demo/session'
 import { sessionMiddleware } from './middleware/session'
 import { adminRoute } from './routes/admin'
 import { assetsServeRoute } from './routes/assets'
@@ -43,11 +45,23 @@ export function buildApp(deps: AppDeps) {
 
   app.use('*', secureHeaders())
 
+  // Public demo (DEMO_MODE=on): noindex, rate limits and refusals run before anything else, incl.
+  // Better Auth. Not mounted at all otherwise.
+  const demo = deps.env.DEMO_MODE === 'on'
+  if (demo) {
+    app.use('*', demoGate(deps))
+  }
+
   // Better Auth owns its routes (incl. its own CSRF via trustedOrigins + rate limiting).
   app.on(['GET', 'POST'], '/api/auth/*', (c) => deps.auth.handler(c.req.raw))
 
   // Load the session for all of OUR routes (registered after this middleware).
   app.use('*', sessionMiddleware(deps.auth))
+
+  if (demo) {
+    app.use('/api/boards/*', demoObjectLimit(deps))
+    app.route('/api/demo', demoSessionRoute(deps))
+  }
 
   app.route('/api/health', healthRoute(deps))
   app.route('/api/instance', instanceRoute(deps))

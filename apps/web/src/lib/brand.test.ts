@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { brandAtom, brandFileStem, loadBrand } from './brand'
+import { brandAtom, brandFileStem, demoAtom, loadBrand } from './brand'
 
 afterEach(() => {
   vi.unstubAllGlobals()
   brandAtom.set('Corkspace')
+  demoAtom.set(false)
 })
 
 describe('brand', () => {
@@ -15,6 +16,16 @@ describe('brand', () => {
     await loadBrand()
     expect(brandAtom.value).toBe('Family pinboard')
     expect(document.title).toBe('Family pinboard')
+    expect(demoAtom.value).toBe(false)
+  })
+
+  it('learns from the server whether this is a demo instance', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ brandName: 'Corkspace', demo: true }))),
+    )
+    await loadBrand()
+    expect(demoAtom.value).toBe(true)
   })
 
   it('keeps the default when the request fails', async () => {

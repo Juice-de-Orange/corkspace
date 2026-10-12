@@ -1580,3 +1580,34 @@ body {
     font-size: var(--text-xl);
   }
 }
+
+/* ─── Public demo (DEMO_MODE=on) ───────────────────────────────────────────── */
+
+.demo-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+.demo-banner {
+  flex: none;
+  padding: var(--space-1) var(--space-4);
+  background: #fef3c7;
+  color: #78350f;
+  border-bottom: 1px solid #f59e0b;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+.demo-content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+/* Pages sized to the viewport fill the space under the banner instead. */
+.demo-content .h-screen {
+  height: 100%;
+}
+.demo-content .page {
+  min-height: 100%;
+}
