@@ -88,6 +88,10 @@ services:
       dockerfile: infra/Dockerfile.web
     depends_on:
       - api
+    environment:
+      # Which proxies may tell nginx the client address, and in which header (infra/nginx-real-ip.sh).
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      REAL_IP_HEADER: ${REAL_IP_HEADER:-}
     ports:
       - "${WEB_PORT:-8080}:8080"
     volumes:

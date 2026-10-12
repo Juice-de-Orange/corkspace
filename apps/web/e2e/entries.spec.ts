@@ -14,16 +14,27 @@ async function login(page: Page): Promise<void> {
   await resetCamera(page)
 }
 
+/** Click a create button and return the id the server gave the new entry. */
+async function createAndGetId(page: Page, button: string): Promise<string> {
+  const created = page.waitForResponse(
+    (r) => r.request().method() === 'POST' && /\/entries$/.test(new URL(r.url()).pathname),
+  )
+  await page.getByRole('button', { name: button }).click()
+  return ((await (await created).json()) as { id: string }).id
+}
+
 test('create a sticky → it appears → reload → it persists', async ({ page }) => {
   await login(page)
-  await page.getByRole('button', { name: '+ Notiz' }).click()
-  await expect(page.locator('[data-entry-id]').first()).toBeVisible()
+  // Follow the new sticky by its server id. Earlier tests leave entries on the shared board, and on a
+  // narrow viewport the first one in the DOM can sit in the overscan ring: mounted but display:none.
+  const id = await createAndGetId(page, '+ Notiz')
+  await expect(page.locator(`[data-entry-id="${id}"]`)).toBeVisible()
 
-  await page.waitForTimeout(500) // allow the create round-trip to persist
+  // The entry is only inserted from the server's 201 response, so it is persisted by now.
   await page.reload()
   await expect(page.locator('.position-readout')).toBeVisible()
-  // metadata is reloaded from the server → at least one entry remains
-  await expect(page.locator('[data-entry-id]').first()).toBeVisible()
+  // metadata is reloaded from the server → the same entry is back
+  await expect(page.locator(`[data-entry-id="${id}"]`)).toBeVisible()
 })
 
 test('edit a sticky → its text persists across reload', async ({ page }, testInfo) => {
@@ -180,9 +191,11 @@ test('create a link card from a URL (SSRF-blocked target degrades gracefully)', 
 test('create a rich document, type text, persists across reload', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.startsWith('mobile'), 'touch editing lands in Phase 6')
   await login(page)
-  await page.getByRole('button', { name: '+ Dok' }).click()
-  // other tests may leave doc entries on the shared board → assert the new (topmost) one
-  await expect(page.locator('.entry-doc').first()).toBeVisible()
+  // Wait for THIS doc: other tests leave doc entries on the shared board, so a plain `.entry-doc`
+  // check passes before the new one exists and the double-click below would hit another entry.
+  const id = await createAndGetId(page, '+ Dok')
+  const doc = page.locator(`[data-entry-id="${id}"]`)
+  await expect(doc).toBeVisible()
 
   const box = await page.locator('.canvas-root').boundingBox()
   if (!box) {
@@ -190,7 +203,7 @@ test('create a rich document, type text, persists across reload', async ({ page 
   }
   // double-click the centered (topmost) doc to edit, type, then blur on an empty corner
   await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2)
-  const editor = page.locator('.entry-doc .ProseMirror')
+  const editor = doc.locator('.ProseMirror')
   await expect(editor).toBeVisible()
   await editor.click()
   await page.keyboard.type('Mein Dokument')
@@ -198,17 +211,8 @@ test('create a rich document, type text, persists across reload', async ({ page 
 
   await page.waitForTimeout(700)
   await page.reload()
-  await expect(page.getByText('Mein Dokument').first()).toBeVisible()
+  await expect(page.locator(`[data-entry-id="${id}"]`)).toContainText('Mein Dokument')
 })
-
-/** Click a create button and return the id the server gave the new entry. */
-async function createAndGetId(page: Page, button: string): Promise<string> {
-  const created = page.waitForResponse(
-    (r) => r.request().method() === 'POST' && /\/entries$/.test(new URL(r.url()).pathname),
-  )
-  await page.getByRole('button', { name: button }).click()
-  return ((await (await created).json()) as { id: string }).id
-}
 
 test('text typed into an open document survives a reload without blur (#9)', async ({
   page,
