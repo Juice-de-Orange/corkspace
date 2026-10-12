@@ -29,9 +29,9 @@
     "demo:reset": "pnpm --filter @corkspace/api run demo:reset"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.14",
-    "knip": "^6.38.0",
-    "turbo": "^2.11.5",
+    "@biomejs/biome": "2.5.15",
+    "knip": "^6.41.0",
+    "turbo": "^2.11.7",
     "typescript": "^5.7.3"
   }
 }
