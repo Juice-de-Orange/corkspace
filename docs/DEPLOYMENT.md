@@ -50,7 +50,7 @@ account). It never overwrites an existing `infra/.env`.
 | `ADMIN_NAME` | no | Display name of the first administrator, default `Admin`. |
 | `BRAND_NAME` | no | Name of your instance in the header, on the sign-in page, in the browser tab and in export file names, default `Corkspace`. Read by the api at start; restart `api` after changing it. |
 | `COMPOSE_PROJECT_NAME` | no | Compose project name, default `corkspace` (from the compose file). It prefixes container, volume and network names; the backup scripts follow it. It applies to the `-f infra/docker-compose.yml` commands below; `docker compose` from the repository root (`compose.yaml`) always uses `corkspace`. |
-| `CORKSPACE_VERSION` | no | Tag of the GHCR images to pull, default `latest` (e.g. `0.2.0` to pin a release). |
+| `CORKSPACE_VERSION` | no | Tag of the GHCR images to pull, default `latest` (e.g. `0.1.0` to pin a release). |
 | `WEB_PORT` | no | Host port of the `web` service, default 8080. |
 | `TRUSTED_PROXIES` | no | Addresses/CIDRs (space or comma separated) allowed to tell the `web` nginx the client address; default loopback and the private ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`). `none` trusts nobody. See §3. |
 | `REAL_IP_HEADER` | no | Header those proxies put the client address in, default `X-Forwarded-For`; `CF-Connecting-IP` behind a Cloudflare Tunnel. |
@@ -75,7 +75,7 @@ curl -fsS http://localhost:8080/api/health    # {"status":"ok","db":"up"}
 `infra/docker-compose.yml` with `infra/.env`). Without `--build`, Compose pulls the release images
 `ghcr.io/juice-de-orange/corkspace-{api,worker,web}` (published for amd64 and arm64 by
 `.github/workflows/release.yml` on every version tag) and builds from the checkout only if a pull
-fails — as it does until the first release is published; `--build` always builds from source.
+fails; `--build` always builds from source.
 
 `migrate` should show `Exited (0)`; `db`, `api` and `web` should be `healthy`. Until `api` is healthy, `/api/`
 requests return 502 for a few seconds.
