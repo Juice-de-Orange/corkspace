@@ -45,17 +45,29 @@ Search engines are kept out: every answer carries `X-Robots-Tag: noindex, nofoll
 | `DEMO_MAX_OBJECTS` | `200` | Objects per board (entries incl. the trash, threads, strokes, frames, teleports, tags); then 403 `DEMO_LIMIT`. |
 | `DEMO_MAX_BODY_BYTES` | `16384` | Size of one request body, which bounds every text a visitor can save at once; then 413 `DEMO_LIMIT`. |
 | `DEMO_MAX_DB_MB` | `1024` | Size of the whole database; above it every write answers 503 `DEMO_FULL` until the next reset (checked every 30 s). |
-| `DEMO_CLIENT_IP_HEADER` | `x-real-ip` | The header the limits read the client address from (see below). |
+| `DEMO_CLIENT_IP_HEADER` | `x-real-ip` | The header the limits read the client address from. Leave it at the default (see below). |
 
 The limits are kept in the memory of the single api process; restarting the api resets them.
 
 ### The client address behind a tunnel
 
-The bundled nginx sets `X-Real-IP` to the address that connected to it. Behind a tunnel or proxy on
-the same host that is always the tunnel, so every visitor would share one rate limit. Set
-`DEMO_CLIENT_IP_HEADER` to the header your tunnel sets to the real visitor address and that a
-visitor cannot forge — for a Cloudflare Tunnel `CF-Connecting-IP`. Only do this when the demo port
-is reachable through that tunnel alone (the compose file binds it to `127.0.0.1`).
+Every limit is kept per visitor address: the demo limits above and Better Auth's own rate limit on
+`/api/auth/*`. The bundled nginx works the address out and passes it to the api as `X-Real-IP`,
+always overwriting what a client sent, the same way as on a normal instance
+([DEPLOYMENT.md §3](DEPLOYMENT.md#3-put-a-reverse-proxy-with-tls-in-front)): it reads `REAL_IP_HEADER` (default
+`X-Forwarded-For`) only from a connection out of `TRUSTED_PROXIES` (default loopback and the private
+ranges, where a tunnel on the same host connects from), and a value a visitor puts in front of the
+chain is ignored. If the address comes out wrong, every visitor shares one bucket, and one busy
+visitor can lock everyone else out of new guest boards.
+
+Behind a Cloudflare Tunnel set `REAL_IP_HEADER=CF-Connecting-IP` in `infra/.env.demo`. Cloudflare
+overwrites that header at its edge, and nginx takes it only from the tunnel. Leave
+`DEMO_CLIENT_IP_HEADER` at `x-real-ip`: pointed at another header, the demo limits read it straight
+from the request, whoever sent it, and Better Auth would still key on `X-Real-IP`.
+
+To check it, open the demo from two different networks (say, a phone off Wi-Fi) and watch the api
+log: `docker compose -f infra/docker-compose.demo.yml --env-file infra/.env.demo logs api` must not
+show `Rate limiting could not determine a client IP`.
 
 ## Run your own demo
 
@@ -70,13 +82,13 @@ POSTGRES_PASSWORD=$(openssl rand -hex 24)
 BETTER_AUTH_SECRET=$(openssl rand -base64 48 | tr -d '\n')
 ADMIN_PASSWORD=$(openssl rand -hex 16)
 DEMO_URL=https://demo.example.com
-DEMO_CLIENT_IP_HEADER=CF-Connecting-IP
+REAL_IP_HEADER=CF-Connecting-IP
 ENV
 docker compose -f infra/docker-compose.demo.yml --env-file infra/.env.demo up -d
 ```
 
 `DEMO_URL` is the address visitors open (Better Auth checks it). For a local try use
-`DEMO_URL=http://localhost:8090` and leave `DEMO_CLIENT_IP_HEADER` out. All `DEMO_*` limits above
+`DEMO_URL=http://localhost:8090` and leave `REAL_IP_HEADER` out. All `DEMO_*` limits above
 can be set in the same file; `DEMO_PORT` changes the published port.
 
 The stack runs the released images `ghcr.io/juice-de-orange/corkspace-{api,web}`, the same ones a

@@ -144,6 +144,10 @@ services:
       dockerfile: infra/Dockerfile.web
     environment:
       DEMO_MODE: "on"
+      # Which proxies may tell nginx the visitor's address, and in which header (infra/nginx-real-ip.sh).
+      # nginx passes it to the api as X-Real-IP, which keys every rate limit; see docs/demo.md.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      REAL_IP_HEADER: ${REAL_IP_HEADER:-}
     depends_on:
       api:
         condition: service_healthy

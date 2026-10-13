@@ -102,7 +102,8 @@ bridge) or a tunnel container connects from; Caddy and the nginx example below n
 Narrow `TRUSTED_PROXIES` to your proxy's address if untrusted machines on a private network can
 reach `WEB_PORT` directly, since anything that is trusted can claim any client address. Behind a
 Cloudflare Tunnel set `REAL_IP_HEADER=CF-Connecting-IP`. If the address is wrong, every visitor
-shares one limit and a failed-login burst blocks sign-in for everyone for a few seconds.
+shares one limit and a failed-login burst blocks sign-in for everyone for a few seconds. A public
+demo takes the same two variables from `infra/.env.demo` ([demo.md](demo.md#the-client-address-behind-a-tunnel)).
 
 **Caddy** (obtains and renews certificates automatically):
 
