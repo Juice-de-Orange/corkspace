@@ -19,31 +19,8 @@ board, reset every hour.
 - **Runs on your server** — Docker Compose and Postgres, accounts you create, editor/viewer sharing
   and read-only links, MIT licence.
 
-## Quick start
-
-You need Docker with the Compose plugin.
-
-```bash
-git clone https://github.com/Juice-de-Orange/corkspace.git && cd corkspace
-./setup              # writes infra/.env with generated secrets, prints your admin sign-in
-docker compose up -d
-```
-
-Open <http://localhost:8080> and sign in with the address and password `./setup` printed.
-`docker compose up -d` pulls the release images `ghcr.io/juice-de-orange/corkspace-{api,worker,web}`
-(amd64 and arm64, published from v0.1.0 on); if it cannot pull them, it prints "denied" warnings
-and builds them from this checkout instead. With the release images pulled and `postgres:16-alpine`
-already cached, the sign-in page was up **about 1½ minutes** after `git clone` (measured
-2026-10-12 in two runs: 82 s and 101 s). Building from source takes longer: 140 s on a clean
-Docker host (8 CPU cores, no cached images).
-
-To see a filled board right away, add the synthetic demo board from the GIF to your (empty) board:
-`docker compose --profile demo run --rm seed`. There is no public sign-up — you create further
-accounts under **Admin → Users**. For a server behind a TLS reverse proxy (`./setup
-https://corkspace.example.com` writes the right addresses), backups and upgrades, see
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-
 [![CI](https://github.com/Juice-de-Orange/corkspace/actions/workflows/ci.yml/badge.svg)](https://github.com/Juice-de-Orange/corkspace/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Juice-de-Orange/corkspace)](https://github.com/Juice-de-Orange/corkspace/releases/latest)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 Built with AI assistance.
@@ -72,6 +49,30 @@ real-time sync. All four are far more mature than Corkspace.
 **Where Corkspace fits:** you want one private board per person on your own server, where
 documents, checklists, images and links live on the canvas next to the notes, connected by threads,
 searchable and versioned, under MIT — and you do not need live co-editing.
+
+## Quick start
+
+You need Docker with the Compose plugin.
+
+```bash
+git clone https://github.com/Juice-de-Orange/corkspace.git && cd corkspace
+./setup              # writes infra/.env with generated secrets, prints your admin sign-in
+docker compose up -d
+```
+
+Open <http://localhost:8080> and sign in with the address and password `./setup` printed.
+`docker compose up -d` pulls the release images `ghcr.io/juice-de-orange/corkspace-{api,worker,web}`
+(amd64 and arm64, published from v0.1.0 on); if it cannot pull them, it prints "denied" warnings
+and builds them from this checkout instead. With the release images pulled and `postgres:16-alpine`
+already cached, the sign-in page was up **about 1½ minutes** after `git clone` (measured
+2026-10-12 in two runs: 82 s and 101 s). Building from source takes longer: 140 s on a clean
+Docker host (8 CPU cores, no cached images).
+
+To see a filled board right away, add the synthetic demo board from the GIF to your (empty) board:
+`docker compose --profile demo run --rm seed`. There is no public sign-up — you create further
+accounts under **Admin → Users**. For a server behind a TLS reverse proxy (`./setup
+https://corkspace.example.com` writes the right addresses), backups and upgrades, see
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Features
 
@@ -150,7 +151,8 @@ pnpm verify:full         # verify + security audit + e2e (Playwright, desktop + 
 ```
 
 The test layers, coverage gates (engine/shared ≥ 90 %, api ≥ 85 %) and conventions are described
-in [docs/TESTING.md](docs/TESTING.md). Contributions are welcome — start with
+in [docs/TESTING.md](docs/TESTING.md); the working method — phased plans with hard quality gates
+(tests, coverage, audits) — in [CLAUDE.md](CLAUDE.md). Contributions are welcome — start with
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Status
@@ -165,7 +167,7 @@ upgrade procedure in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) were not part of t
 
 ## Known limitations
 
-- **No e-mail.** Corkspace sends no mail; the `SMTP_*` variables are reserved and unused (#10).
+- **No e-mail.** Corkspace sends no mail; the `SMTP_*` variables are reserved and unused ([#10](https://github.com/Juice-de-Orange/corkspace/issues/10)).
   What that means in practice:
   - *Forgotten password:* there is no self-service reset, and users cannot change their own
     password. An administrator sets a new one under **Admin → Users → (user) → New password** and
@@ -182,13 +184,8 @@ upgrade procedure in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) were not part of t
 - **Link previews only for administrators.** Fetching a page's title, description and image for a
   link card is limited to the instance administrator; for everyone else the card shows the plain
   link.
-- Touch e2e tests are not automated yet (#11); the release checks ran in Chromium only, see
+- Touch e2e tests are not automated yet ([#11](https://github.com/Juice-de-Orange/corkspace/issues/11)); the release checks ran in Chromium only, see
   [Status](#status).
-
-## AI assistance
-
-As said at the top: built with AI assistance. The working method — phased plans with hard quality gates (tests, coverage, audits) — is
-described in [CLAUDE.md](CLAUDE.md).
 
 ## License
 
