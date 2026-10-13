@@ -18,9 +18,25 @@ interface EntryMetaResponse {
   tagIds?: string[]
 }
 
+/** A request the server answered with an error status. `retryAfterMs` carries the `Retry-After`
+ *  header (a public demo answers 429 with one when an address sends too many requests). */
+export class RequestError extends Error {
+  constructor(
+    readonly status: number,
+    readonly retryAfterMs: number | null,
+  ) {
+    super(`request failed: ${status}`)
+  }
+}
+
+function retryAfterMs(res: Response): number | null {
+  const seconds = Number(res.headers.get('retry-after') ?? Number.NaN)
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : null
+}
+
 async function asJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    throw new Error(`request failed: ${res.status}`)
+    throw new RequestError(res.status, retryAfterMs(res))
   }
   return res.json() as Promise<T>
 }
@@ -100,7 +116,8 @@ export async function apiDeleteEntry(id: string): Promise<void> {
 }
 
 /**
- * Lazy-load an entry's heavy content. `rev` is a content-revision cache-buster: pass a bumped
+ * Lazy-load an entry's heavy content. Entry components go through `loadEntryContent`
+ * (entry-content-loader.ts), which batches and retries. `rev` is a content-revision cache-buster: pass a bumped
  * value (see `entryContentRevAtom`) to bypass any HTTP cache after the body changed out-of-band
  * (e.g. a version restore). The server ignores the extra query param.
  */
@@ -108,4 +125,21 @@ export async function apiGetContent(id: string, rev = 0): Promise<unknown> {
   const url = boardApi(`/entries/${id}/content`) + (rev > 0 ? `?v=${rev}` : '')
   const r = await asJson<{ content: unknown }>(await fetch(url, { credentials: 'include' }))
   return r.content
+}
+
+/**
+ * Lazy-load the content of several entries in one request. Only for a board opened with a session:
+ * the share-link tree is GET-only. Ids that are missing on the board or not visible to the caller
+ * are missing from the result.
+ */
+export async function apiGetContents(ids: readonly string[]): Promise<Map<string, unknown>> {
+  const rows = await asJson<Array<{ id: string; content: unknown }>>(
+    await fetch(boardApi('/entries/content'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    }),
+  )
+  return new Map(rows.map((r) => [r.id, r.content]))
 }

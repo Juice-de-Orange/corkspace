@@ -1,7 +1,7 @@
 import { type Ref, useEffect, useMemo, useRef, useState } from 'react'
 import { computed } from 'signia'
 import { useValue } from 'signia-react'
-import { apiGetContent } from '../../api/entries'
+import { loadEntryContent } from '../../api/entry-content-loader'
 import { updateEntryContentCommand } from '../../commands/entry-commands'
 import { history } from '../../history/history'
 import { useT } from '../../i18n'
@@ -84,24 +84,15 @@ export function StickyEntry({
       setLoaded(true)
       return
     }
-    let cancelled = false
-    void apiGetContent(meta.id, contentRev)
-      .then((c) => {
-        if (cancelled) {
-          return
-        }
-        const t = stickyText(c)
-        stickyTextCache.set(meta.id, { rev: contentRev, text: t })
-        // Never clobber an in-progress edit if a (re)fetch resolves late.
-        if (!editingRef.current) {
-          setText(t)
-        }
-        setLoaded(true)
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
+    return loadEntryContent(meta.id, contentRev, (c) => {
+      const t = stickyText(c)
+      stickyTextCache.set(meta.id, { rev: contentRev, text: t })
+      // Never clobber an in-progress edit if a (re)fetch resolves late.
+      if (!editingRef.current) {
+        setText(t)
+      }
+      setLoaded(true)
+    })
   }, [meta.id, contentRev])
 
   // Safety: if this sticky unmounts while being edited (e.g. panned out of view), persist the draft.
@@ -158,6 +149,7 @@ export function StickyEntry({
       ref={innerRef}
       data-entry-id={meta.id}
       className="entry entry-sticky"
+      aria-busy={!loaded}
       onDoubleClick={() => loaded && setEditing(meta.id)}
       style={{
         position: 'absolute',
@@ -194,7 +186,12 @@ export function StickyEntry({
         />
       ) : (
         <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-          {text || <span style={{ opacity: 0.4 }}>{t('canvas.doubleClickToEdit')}</span>}
+          {text || (
+            // Still loading is not empty: no invitation to type over content that has not arrived.
+            <span style={{ opacity: 0.4 }}>
+              {t(loaded ? 'canvas.doubleClickToEdit' : 'common.loading')}
+            </span>
+          )}
         </div>
       )}
     </div>

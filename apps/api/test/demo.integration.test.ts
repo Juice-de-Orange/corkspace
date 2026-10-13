@@ -379,6 +379,39 @@ describe('demo mode: limits', () => {
     expect((await hit('198.51.100.8')).status).toBe(200)
   })
 
+  it('still loads entry content in batches when the database is full or near the body limit', async () => {
+    const guest = await startGuest(app())
+    const a = app({ DEMO_MAX_DB_MB: '1' })
+    const board = `/api/boards/${guest.boardId}`
+    const write = await send(a, 'POST', `${board}/entries`, {
+      cookie: guest.cookie,
+      body: sticky(),
+    })
+    expect(write.status).toBe(503)
+    expect(await write.json()).toMatchObject({ code: 'DEMO_FULL' })
+
+    const metas = (await (
+      await send(a, 'GET', `${board}/entries`, { cookie: guest.cookie })
+    ).json()) as Array<{
+      id: string
+    }>
+    expect(metas.length).toBeGreaterThan(0)
+    const read = await send(a, 'POST', `${board}/entries/content`, {
+      cookie: guest.cookie,
+      body: { ids: metas.map((m) => m.id) },
+    })
+    expect(read.status).toBe(200)
+    const rows = (await read.json()) as Array<{ id: string; content: unknown }>
+    expect(rows.map((r) => r.id).sort()).toEqual(metas.map((m) => m.id).sort())
+
+    // The web client's largest batch (200 ids) fits the default request body limit.
+    const largest = await send(app(), 'POST', `${board}/entries/content`, {
+      cookie: guest.cookie,
+      body: { ids: Array.from({ length: 200 }, () => randomUUID()) },
+    })
+    expect(largest.status).toBe(200)
+  })
+
   it('limits new guests per IP and in total', async () => {
     const a = app({ DEMO_GUESTS_PER_IP: '2' })
     const ip = freshIp()

@@ -5,7 +5,7 @@ import { type Editor, EditorContent, useEditor } from '@tiptap/react'
 import { type Ref, useEffect, useMemo, useRef, useState } from 'react'
 import { computed } from 'signia'
 import { useValue } from 'signia-react'
-import { apiGetContent } from '../../api/entries'
+import { loadEntryContent } from '../../api/entry-content-loader'
 import { apiLinkPreview } from '../../api/links'
 import { updateEntryContentCommand } from '../../commands/entry-commands'
 import { docExtensions, EMPTY_DOC, sanitizeDocHtml } from '../../editor/extensions'
@@ -282,6 +282,7 @@ function DocEditor({
  */
 export function DocEntry({ meta, innerRef }: { meta: EntryMeta; innerRef: Ref<HTMLDivElement> }) {
   const editing = useValue(editingEntryIdAtom) === meta.id
+  const t = useT()
   const [doc, setDoc] = useState<Json>(EMPTY_DOC)
   const [loaded, setLoaded] = useState(() => recentlyCreatedIds.has(meta.id))
   const editingRef = useRef(editing)
@@ -299,23 +300,14 @@ export function DocEntry({ meta, innerRef }: { meta: EntryMeta; innerRef: Ref<HT
   )
 
   useEffect(() => {
-    let cancelled = false
-    void apiGetContent(meta.id, contentRev)
-      .then((c) => {
-        if (cancelled) {
-          return
-        }
-        const d = readDoc(c)
-        if (!editingRef.current) {
-          setDoc(d)
-          lastSavedRef.current = JSON.stringify(d)
-        }
-        setLoaded(true)
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
+    return loadEntryContent(meta.id, contentRev, (c) => {
+      const d = readDoc(c)
+      if (!editingRef.current) {
+        setDoc(d)
+        lastSavedRef.current = JSON.stringify(d)
+      }
+      setLoaded(true)
+    })
   }, [meta.id, contentRev])
 
   /** Persist `json` if it changed. Also used for the draft saved when the page is hidden. */
@@ -348,6 +340,7 @@ export function DocEntry({ meta, innerRef }: { meta: EntryMeta; innerRef: Ref<HT
       className={`entry entry-doc${
         meta.color === 'lined' ? ' doc-paper-lined' : meta.color === 'grid' ? ' doc-paper-grid' : ''
       }`}
+      aria-busy={!loaded}
       onDoubleClick={() => loaded && setEditing(meta.id)}
       style={{
         position: 'absolute',
@@ -364,8 +357,10 @@ export function DocEntry({ meta, innerRef }: { meta: EntryMeta; innerRef: Ref<HT
     >
       {editing ? (
         <DocEditor initial={doc} onCommit={commit} onDraft={save} />
-      ) : (
+      ) : loaded ? (
         <DocPreview doc={doc} />
+      ) : (
+        <div style={{ opacity: 0.4 }}>{t('common.loading')}</div>
       )}
     </div>
   )

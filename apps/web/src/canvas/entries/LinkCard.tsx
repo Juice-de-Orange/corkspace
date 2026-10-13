@@ -1,7 +1,7 @@
 import { parseVideoEmbed } from '@corkspace/shared'
 import { type Ref, useEffect, useState } from 'react'
 import { assetUrl } from '../../api/assets'
-import { apiGetContent } from '../../api/entries'
+import { loadEntryContent } from '../../api/entry-content-loader'
 import { useT } from '../../i18n'
 import type { EntryMeta } from '../state/entry-store'
 
@@ -26,19 +26,15 @@ export function LinkCard({ meta, innerRef }: { meta: EntryMeta; innerRef: Ref<HT
   const [content, setContent] = useState<LinkContent>({})
   const t = useT()
 
-  useEffect(() => {
-    let cancelled = false
-    void apiGetContent(meta.id)
-      .then((c) => {
-        if (!cancelled && c && typeof c === 'object') {
+  useEffect(
+    () =>
+      loadEntryContent(meta.id, 0, (c) => {
+        if (c && typeof c === 'object') {
           setContent(c as LinkContent)
         }
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [meta.id])
+      }),
+    [meta.id],
+  )
 
   const url = content.url ?? ''
   const video = url ? parseVideoEmbed(url) : null
