@@ -227,9 +227,13 @@ async function buildTemplate(db: Database, env: Env, auth: Auth): Promise<string
   }
   const app = buildApp({ db, env: { ...env, DEMO_MODE: 'off' }, auth })
   const origin = new URL(env.BETTER_AUTH_URL).origin
+  // These requests never pass nginx, which sets X-Real-IP on every visitor request. Name the
+  // loopback address, or Better Auth's rate limit finds no client address, logs a warning on every
+  // reset and keys the sign-in on a bucket shared by every request without one.
+  const client = '127.0.0.1'
   const signIn = await app.request('/api/auth/sign-in/email', {
     method: 'POST',
-    headers: { 'content-type': 'application/json', origin },
+    headers: { 'content-type': 'application/json', origin, 'x-real-ip': client },
     body: JSON.stringify({ email, password }),
   })
   if (!signIn.ok) {
@@ -242,7 +246,7 @@ async function buildTemplate(db: Database, env: Env, auth: Auth): Promise<string
   const call: ApiCall = async (method, path, body) => {
     const res = await app.request(path, {
       method,
-      headers: { 'content-type': 'application/json', origin, cookie },
+      headers: { 'content-type': 'application/json', origin, cookie, 'x-real-ip': client },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     })
     if (!res.ok) {

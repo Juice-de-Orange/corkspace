@@ -420,6 +420,25 @@ describe('demo mode: reset', () => {
   })
 })
 
+describe('demo mode: the client address of internal requests', () => {
+  it('signs the template in with a client address, so Better Auth never falls back to one shared bucket', async () => {
+    const env = envFor({ DEMO_MODE: 'on' })
+    const auth = makeAuth(testDb.db, env)
+    // Record the address of every request that reaches Better Auth while the reset rebuilds the
+    // template. Without one, Better Auth's rate limit logs "could not determine a client IP" and
+    // keys the request on a bucket shared by everything else without an address.
+    const addresses: Array<string | null> = []
+    const handler = auth.handler
+    auth.handler = (req: Request) => {
+      addresses.push(req.headers.get('x-real-ip'))
+      return handler(req)
+    }
+    await resetDemo(testDb.db, env, auth)
+    expect(addresses.length).toBeGreaterThan(0)
+    expect(addresses).toEqual(addresses.map(() => '127.0.0.1'))
+  })
+})
+
 describe('demo mode off (the default)', () => {
   it('has no guest route, no noindex header and normal sign-in', async () => {
     const env = envFor()
