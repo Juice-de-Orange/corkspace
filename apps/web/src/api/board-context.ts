@@ -23,6 +23,11 @@ export function setPublicToken(token: string): void {
   currentBoardId = null
 }
 
+/** Whether the board was opened through a share link (the GET-only public tree). */
+export function isPublicBoard(): boolean {
+  return publicToken !== null
+}
+
 /** Build a board-scoped API path (`sub` starts with '/'), routing to the public tree in token mode. */
 export function boardApi(sub: string): string {
   if (publicToken) {

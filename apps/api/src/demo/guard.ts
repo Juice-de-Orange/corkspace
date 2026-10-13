@@ -29,6 +29,9 @@ const DISABLED = /^\/api\/(?:admin|feedback|links)(?:\/|$)/
 /** Off for writes: uploads and remote-image downloads (`assets`), invitations (`members`) and
  *  read links (`shares`) — the last two would show a visitor's content to someone else. */
 const BOARD_WRITES_DISABLED = /^\/api\/boards\/[^/]+\/(?:assets|members|shares)(?:\/|$)/
+/** A POST that only reads: the batch content load of the entries in view. A full demo still
+ *  shows its boards. */
+const BATCH_READ = /^\/api\/boards\/[^/]+\/entries\/content$/
 /** Requests that add an object to a board. */
 const CREATES =
   /^\/api\/boards\/([^/]+)\/(?:entries(?:\/[^/]+\/duplicate)?|connections|strokes|frames|teleports|tags)\/?$/
@@ -95,7 +98,7 @@ export function demoGate(deps: AppDeps): MiddlewareHandler<AppEnv> {
       return refuse(c, 403, 'DEMO_DISABLED', 'Disabled in the demo')
     }
     if (MUTATING.has(method) && method !== 'DELETE' && path !== '/api/auth/sign-out') {
-      if (await storageFull()) {
+      if (!BATCH_READ.test(path) && (await storageFull())) {
         return refuse(c, 503, 'DEMO_FULL', 'The demo is full until the next reset')
       }
       // Answers 413 itself (from Content-Length, or while reading a body without one).

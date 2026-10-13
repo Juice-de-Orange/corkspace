@@ -1,7 +1,7 @@
 import { type Ref, useEffect, useMemo, useRef, useState } from 'react'
 import { computed } from 'signia'
 import { useValue } from 'signia-react'
-import { apiGetContent } from '../../api/entries'
+import { loadEntryContent } from '../../api/entry-content-loader'
 import { updateEntryContentCommand } from '../../commands/entry-commands'
 import { IconButton } from '../../components/ui'
 import { history } from '../../history/history'
@@ -61,23 +61,14 @@ export function ChecklistEntry({
   )
 
   useEffect(() => {
-    let cancelled = false
     const gen = editGenRef.current
-    void apiGetContent(meta.id, contentRev)
-      .then((c) => {
-        if (cancelled) {
-          return
-        }
-        // Only adopt the server content if no local edit happened while this fetch was in flight.
-        if (editGenRef.current === gen) {
-          setItems(readItems(c))
-        }
-        setLoaded(true)
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
+    return loadEntryContent(meta.id, contentRev, (c) => {
+      // Only adopt the server content if no local edit happened while this fetch was in flight.
+      if (editGenRef.current === gen) {
+        setItems(readItems(c))
+      }
+      setLoaded(true)
+    })
   }, [meta.id, contentRev])
 
   // Route through the command stack: undoable, version-captured, coalesced, and rev-bumped so
@@ -111,6 +102,7 @@ export function ChecklistEntry({
       ref={innerRef}
       data-entry-id={meta.id}
       className="entry entry-checklist"
+      aria-busy={!loaded}
       style={{
         position: 'absolute',
         left: meta.x,
@@ -174,14 +166,19 @@ export function ChecklistEntry({
           </IconButton>
         </div>
       ))}
-      <button
-        type="button"
-        data-no-pan
-        onClick={() => persist([...items, { id: crypto.randomUUID(), text: '', checked: false }])}
-        style={{ marginTop: 6, fontSize: 22, fontWeight: 600, color: 'var(--accent)' }}
-      >
-        + {t('canvas.addItem')}
-      </button>
+      {loaded ? (
+        <button
+          type="button"
+          data-no-pan
+          onClick={() => persist([...items, { id: crypto.randomUUID(), text: '', checked: false }])}
+          style={{ marginTop: 6, fontSize: 22, fontWeight: 600, color: 'var(--accent)' }}
+        >
+          + {t('canvas.addItem')}
+        </button>
+      ) : (
+        // Still loading is not empty: no "+ Item" on a list whose items have not arrived.
+        <div style={{ opacity: 0.4 }}>{t('common.loading')}</div>
+      )}
     </div>
   )
 }

@@ -104,7 +104,10 @@ Figma-style alignment guides with optional grid snapping. None of these are impl
   36–200 px → preview; < 36 px → coloured block with no content mounted. Bucket changes use a 12 %
   hysteresis band so entries do not flicker at a threshold.
 - **Lazy content.** The initial board load fetches only metadata and positions for all entries;
-  document bodies and checklist items are fetched when an entry is mounted or opened.
+  document bodies and checklist items are fetched when an entry is mounted or opened. Entries that
+  mount together share one batch request (`POST …/entries/content`; a share link fetches each on
+  its own), a failed load is retried until it succeeds, and until then the entry shows a loading
+  state instead of the empty entry's "double-click to edit".
 - Exactly **one** live rich-text editor exists at a time: double-click (or the touch edit badge)
   mounts TipTap, blur serialises the document and unmounts the editor.
 - Threads and strokes are SVG overlays inside the world container; their widths are kept
