@@ -5,6 +5,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-13
+
+A patch release for the public demo and for boards on slow or rate-limited connections. No
+database migrations.
+
+### Fixed
+
+- Entries in view always get their content when a board opens. Content requests from one render
+  go out as one batched `POST …/entries/content` (up to 200 ids) instead of one `GET` per entry; a
+  failed request is retried (after `Retry-After`, otherwise with backoff) until the content arrives
+  or the entry leaves the view. Before, an entry whose request failed — for example with 429 from
+  the demo rate limit — stayed empty until the camera moved. Sticky notes, checklists and documents
+  show "Loading…" until their content is there, and cannot be edited before (#67).
+- In demo mode, reading entry content is no longer refused while the database is over its size
+  cap (#67).
+- The demo template build sends a client address, so Better Auth no longer logs "could not
+  determine a client IP" on every reset (#68).
+- `infra/docker-compose.demo.yml` passes `TRUSTED_PROXIES` and `REAL_IP_HEADER` to `web`, so a
+  demo behind Cloudflare or another proxy can key rate limits on the visitor's real address;
+  `docs/demo.md` recommends `REAL_IP_HEADER=CF-Connecting-IP` instead of `DEMO_CLIENT_IP_HEADER`,
+  which Better Auth ignores (#68).
+
 ## [0.1.1] - 2026-10-13
 
 A patch release: start-up, demo and documentation fixes from a first-visitor check of v0.1.0, and
