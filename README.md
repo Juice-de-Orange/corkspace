@@ -3,6 +3,9 @@
 **Your own infinite pinboard: notes, documents, checklists, images and links on one canvas, tied
 together with red threads — self-hosted, and everything stays findable.**
 
+**[Try the live demo](https://corkspace-demo.maxlworks.com)** — no sign-up, your own copy of the demo
+board, reset every hour.
+
 ![Zooming into a demo board, adding a note, tying it to another note with a red thread, then searching for “plum” and flying to the recipe](docs/media/hero.gif)
 
 - **An infinite canvas that stays smooth** — a custom engine (no canvas SDK) with culling and level
