@@ -37,6 +37,54 @@ test('create a sticky → it appears → reload → it persists', async ({ page 
   await expect(page.locator(`[data-entry-id="${id}"]`)).toBeVisible()
 })
 
+test('an entry created right after the board opens goes on top of its entries (#59)', async ({
+  page,
+}) => {
+  await login(page)
+  const api = boardApi(page)
+  const top = await page.request.post(`${api}/entries`, {
+    data: {
+      type: 'sticky',
+      x: -5000,
+      y: -5000,
+      width: 140,
+      height: 140,
+      zIndex: 900_000,
+      visibility: 'public',
+      color: 'yellow',
+      content: { text: 'far up the z-order' },
+    },
+  })
+  expect(top.status()).toBe(201)
+  const topId = ((await top.json()) as { id: string }).id
+  let createdId: string | undefined
+  try {
+    // A slow machine: the board's entry list arrives after the user has already clicked "+ Notiz".
+    const isEntryList = (url: URL): boolean => url.pathname === `${api}/entries`
+    await page.route(isEntryList, async (route) => {
+      if (route.request().method() === 'GET') {
+        await new Promise((resolve) => setTimeout(resolve, 1500))
+      }
+      await route.continue()
+    })
+    await page.reload()
+    const created = page.waitForResponse(
+      (r) => r.request().method() === 'POST' && new URL(r.url()).pathname === `${api}/entries`,
+    )
+    await page.getByRole('button', { name: '+ Notiz' }).click()
+    const body = (await (await created).json()) as { id: string; zIndex: number }
+    createdId = body.id
+    expect(body.zIndex).toBeGreaterThan(900_000)
+    await page.unroute(isEntryList)
+  } finally {
+    for (const id of [topId, createdId]) {
+      if (id) {
+        await page.request.delete(`${api}/entries/${id}`)
+      }
+    }
+  }
+})
+
 test('edit a sticky → its text persists across reload', async ({ page }, testInfo) => {
   // The desktop edit gesture is double-click; the touch edit gesture (long-press / double-tap)
   // is built in Phase 6, so this desktop interaction is scoped to the desktop project.

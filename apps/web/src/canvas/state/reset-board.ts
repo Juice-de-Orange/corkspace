@@ -9,7 +9,7 @@ import {
   selectedConnectionIdAtom,
 } from './connection-store'
 import { editingEntryIdAtom } from './editor-state'
-import { loadEntries, recentlyCreatedIds } from './entry-store'
+import { entriesLoadedAtom, loadEntries, recentlyCreatedIds } from './entry-store'
 import { loadFrames } from './frame-store'
 import { clipboardIdAtom, selectedEntryIdAtom } from './selection-state'
 import { liveStrokeAtom, loadStrokes } from './stroke-store'
@@ -46,6 +46,7 @@ export function resetBoardClientState(): void {
   connectSourceAnchorAtom.set(null)
   liveStrokeAtom.set(null)
   loadEntries([])
+  entriesLoadedAtom.set(false) // the next board's entries are not here yet
   loadStrokes([])
   loadConnections([])
   loadFrames([])

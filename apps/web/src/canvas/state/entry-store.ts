@@ -22,6 +22,12 @@ export interface EntryMeta {
 export const entriesAtom = atom<ReadonlyMap<string, EntryMeta>>('entries', new Map())
 
 /**
+ * Whether the board's entries have arrived (`loadEntries`). Until then a new entry cannot be put on
+ * top: its z-index is computed from the entries known so far, which would be none (#59).
+ */
+export const entriesLoadedAtom = atom<boolean>('entriesLoaded', false)
+
+/**
  * Per-entry content revision counter. Content-bearing entries (sticky/doc/checklist) lazy-load
  * their body keyed on `meta.id`; bumping an id's revision forces those effects to re-fetch — used
  * when the server-side content changes out-of-band (e.g. restoring a prior version).
@@ -53,6 +59,7 @@ export function loadEntries(metas: readonly EntryMeta[]): void {
     map.set(e.id, e)
   }
   entriesAtom.set(map)
+  entriesLoadedAtom.set(true)
 }
 
 export function upsertEntry(e: EntryMeta): void {

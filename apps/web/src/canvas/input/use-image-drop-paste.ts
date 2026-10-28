@@ -1,6 +1,7 @@
 import { type RefObject, useEffect } from 'react'
 import { createImageFromFile } from '../../commands/image'
 import { t } from '../../i18n'
+import { entriesLoadedAtom } from '../state/entry-store'
 import { pushError } from '../state/toast-store'
 
 /** Create image entries by dropping image files onto the board, or pasting an image. */
@@ -14,10 +15,11 @@ export function useImageDropPaste(rootRef: RefObject<HTMLElement | null>): void 
     const onDragOver = (e: DragEvent) => {
       e.preventDefault()
     }
+    // Like the toolbar, only once the board's entries are there (z-index on top, #59).
     const onDrop = (e: DragEvent) => {
       e.preventDefault()
       const file = [...(e.dataTransfer?.files ?? [])].find((f) => f.type.startsWith('image/'))
-      if (file) {
+      if (file && entriesLoadedAtom.value) {
         const rect = root.getBoundingClientRect()
         void createImageFromFile(file, {
           x: e.clientX - rect.left,
@@ -28,7 +30,7 @@ export function useImageDropPaste(rootRef: RefObject<HTMLElement | null>): void 
     const onPaste = (e: ClipboardEvent) => {
       const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'))
       const file = item?.getAsFile()
-      if (file) {
+      if (file && entriesLoadedAtom.value) {
         void createImageFromFile(file).catch(() => pushError(t('cmd.imageAddFailed')))
       }
     }
