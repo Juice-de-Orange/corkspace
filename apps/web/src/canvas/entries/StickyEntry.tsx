@@ -7,7 +7,12 @@ import { history } from '../../history/history'
 import { useT } from '../../i18n'
 import { onPageHide } from '../../lib/page-hide'
 import { editingEntryIdAtom, setEditing } from '../state/editor-state'
-import { type EntryMeta, entryContentRevAtom, recentlyCreatedIds } from '../state/entry-store'
+import {
+  type EntryMeta,
+  entryContentRevAtom,
+  recentlyCreatedIds,
+  stickyTextCache,
+} from '../state/entry-store'
 
 const STICKY_BG: Record<string, string> = {
   yellow: '#fde68a',
@@ -27,14 +32,6 @@ function stickyText(content: unknown): string {
   }
   return ''
 }
-
-/**
- * Module-level cache of the last-known text per sticky id (+ the content revision it was fetched at).
- * A sticky unmounts and remounts whenever it crosses the LOD block↔full boundary while zooming;
- * seeding state from this cache makes the remount show its text INSTANTLY (no fetch, no blank flash).
- * A newer revision (version restore) bypasses the cache and refetches. Survives remounts by design.
- */
-const stickyTextCache = new Map<string, { rev: number; text: string }>()
 
 /** Sticky note: lazy-loads its text, renders it, and edits in place on double-click
  *  (save-on-blur via the command stack). */
