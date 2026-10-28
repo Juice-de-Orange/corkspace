@@ -7,7 +7,12 @@ import { history } from '../../history/history'
 import { useT } from '../../i18n'
 import { onPageHide } from '../../lib/page-hide'
 import { editingEntryIdAtom, setEditing } from '../state/editor-state'
-import { type EntryMeta, entryContentRevAtom, recentlyCreatedIds } from '../state/entry-store'
+import {
+  type EntryMeta,
+  entryContentRevAtom,
+  recentlyCreatedIds,
+  stickyTextCache,
+} from '../state/entry-store'
 
 const STICKY_BG: Record<string, string> = {
   yellow: '#fde68a',
@@ -28,14 +33,6 @@ function stickyText(content: unknown): string {
   return ''
 }
 
-/**
- * Module-level cache of the last-known text per sticky id (+ the content revision it was fetched at).
- * A sticky unmounts and remounts whenever it crosses the LOD block↔full boundary while zooming;
- * seeding state from this cache makes the remount show its text INSTANTLY (no fetch, no blank flash).
- * A newer revision (version restore) bypasses the cache and refetches. Survives remounts by design.
- */
-const stickyTextCache = new Map<string, { rev: number; text: string }>()
-
 /** Sticky note: lazy-loads its text, renders it, and edits in place on double-click
  *  (save-on-blur via the command stack). */
 export function StickyEntry({
@@ -45,7 +42,7 @@ export function StickyEntry({
   meta: EntryMeta
   innerRef: Ref<HTMLDivElement>
 }) {
-  const editing = useValue(editingEntryIdAtom) === meta.id
+  const editRequested = useValue(editingEntryIdAtom) === meta.id
   const t = useT()
   // Seed synchronously from the cache so an LOD remount shows text immediately (no flash).
   const cached = stickyTextCache.get(meta.id)
@@ -53,6 +50,9 @@ export function StickyEntry({
   const [loaded, setLoaded] = useState(
     () => cached !== undefined || recentlyCreatedIds.has(meta.id),
   )
+  // The ✏️ button asks for the editor without knowing whether the content is there. Like a
+  // double-click, the ask is refused until it is: the content-wipe guard would drop what is typed.
+  const editing = editRequested && loaded
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   // Refs mirror the latest values for the load guard + unmount-safety commit (no stale closures).
   const editingRef = useRef(editing)
@@ -73,6 +73,12 @@ export function StickyEntry({
       textareaRef.current?.focus()
     }
   }, [editing])
+
+  useEffect(() => {
+    if (editRequested && !loaded) {
+      setEditing(null)
+    }
+  }, [editRequested, loaded])
 
   useEffect(() => {
     // Cache hit at the current revision → no fetch, no flash (LOD remount fast path).

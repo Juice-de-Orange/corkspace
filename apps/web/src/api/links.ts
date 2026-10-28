@@ -1,7 +1,8 @@
 import type { LinkPreview } from '@corkspace/shared'
+import { boardApi } from './board-context'
 
 export async function apiLinkPreview(url: string): Promise<LinkPreview> {
-  const res = await fetch('/api/links/preview', {
+  const res = await fetch(boardApi('/links/preview'), {
     method: 'POST',
     credentials: 'include',
     headers: { 'content-type': 'application/json' },

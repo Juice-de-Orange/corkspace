@@ -10,6 +10,10 @@ export const shell = {
   'shell.board': { de: 'Board', en: 'Board' },
   'shell.menu': { de: 'Menü', en: 'Menu' },
   'shell.boardNotFound': { de: 'Board nicht gefunden.', en: 'Board not found.' },
+  'shell.boardLoadRetrying': {
+    de: 'Das Board konnte nicht geladen werden. Neuer Versuch läuft…',
+    en: 'The board could not be loaded. Trying again…',
+  },
   'shell.themeToggle': { de: 'Design wechseln', en: 'Switch theme' },
   'shell.readOnly': { de: 'Nur-Lese-Ansicht', en: 'Read-only view' },
   'shell.linkInvalid': {

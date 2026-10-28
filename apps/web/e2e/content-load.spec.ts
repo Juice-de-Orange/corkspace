@@ -127,13 +127,62 @@ test('entries in view load their content on board open, without moving the camer
     await first.dblclick()
     await expect(first.locator('textarea')).toHaveCount(0)
   }
+  // The ✏️ button (the touch path to the editor) is refused the same way (#71): an editor opened
+  // now would start empty and stay open with nothing in it after the content has arrived.
+  await first.click()
+  await page.locator('[data-edit-entry]').click()
+  await expect(first.locator('textarea')).toHaveCount(0)
 
   // 3. Once the server answers again, the content arrives on its own — still without a camera move.
   blocked = false
   await expectAllContent()
   await expect(first).not.toContainText('Lädt…')
+  await expect(first.locator('textarea')).toHaveCount(0)
 
   await page.unroute(isContentLoad)
+  for (const id of [...stickies.map((s) => s.id), checklistId]) {
+    await page.request.delete(`/api/boards/${boardId}/entries/${id}`)
+  }
+})
+
+test('a board whose entry list is refused at first fills in once the server answers (#70)', async ({
+  page,
+}, testInfo) => {
+  await login(page)
+  const tag = `LIST-${testInfo.project.name}-${Date.now()}`
+  const { boardId, stickies, checklistId } = await createEntriesInView(page, tag)
+  const isEntryList = (url: URL): boolean => url.pathname === `/api/boards/${boardId}/entries`
+  let refused = 0
+  await page.route(isEntryList, async (route: Route) => {
+    if (route.request().method() !== 'GET' || refused >= 2) {
+      await route.continue()
+      return
+    }
+    refused += 1
+    await route.fulfill({
+      status: 429,
+      headers: { 'retry-after': '1' },
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Too many requests', code: 'RATE_LIMITED' }),
+    })
+  })
+  await page.reload()
+  await expect(page.locator('.position-readout')).toBeVisible()
+  // While the list is refused the board says so instead of looking empty …
+  const notice = page
+    .getByRole('status')
+    .filter({ hasText: 'Das Board konnte nicht geladen werden' })
+  await expect(notice).toBeVisible()
+  // … and fills in on its own once the server answers again.
+  for (const s of stickies) {
+    await expect(page.locator(`[data-entry-id="${s.id}"]`)).toContainText(s.text, {
+      timeout: 15_000,
+    })
+  }
+  await expect(notice).toHaveCount(0)
+  expect(refused).toBe(2)
+
+  await page.unroute(isEntryList)
   for (const id of [...stickies.map((s) => s.id), checklistId]) {
     await page.request.delete(`/api/boards/${boardId}/entries/${id}`)
   }

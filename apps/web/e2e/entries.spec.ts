@@ -746,3 +746,57 @@ test('a cancelled pointer aborts an entry drag: back to the start, nothing saved
     await page.request.delete(`${boardApi(page)}/entries/${id}`)
   }
 })
+
+test('a link card description ends on a whole line above the site row (#72)', async ({ page }) => {
+  await login(page)
+  const size = page.viewportSize()
+  if (!size) {
+    throw new Error('no viewport')
+  }
+  // The demo board's "Ferry timetable" card: same size and text, in the middle of the view.
+  const description = 'Crossings every two hours in summer.'
+  const res = await page.request.post(`${boardApi(page)}/entries`, {
+    data: {
+      type: 'link',
+      x: Math.round(size.width / 2) - 160,
+      y: Math.round(size.height / 2) - 110,
+      width: 320,
+      height: 220,
+      zIndex: 100_000,
+      visibility: 'public',
+      content: {
+        url: 'https://example.com/ferry-timetable',
+        title: 'Ferry timetable',
+        description,
+        siteName: 'example.com',
+      },
+    },
+  })
+  expect(res.status()).toBe(201)
+  const { id } = (await res.json()) as { id: string }
+  try {
+    await page.reload()
+    await expect(page.locator('.position-readout')).toBeVisible()
+    const card = page.locator(`[data-entry-id="${id}"]`)
+    const text = card.getByText(description)
+    await expect(text).toBeVisible()
+    const lines = await text.evaluate((el) => {
+      const box = el.getBoundingClientRect()
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      const rects = [...range.getClientRects()]
+      return {
+        bottom: box.bottom,
+        tops: [...new Set(rects.map((r) => Math.round(r.top)))].length,
+        // Line boxes the description's box cuts through: they start inside it and end below it.
+        cut: rects.filter((r) => r.top < box.bottom - 1 && r.bottom > box.bottom + 1).length,
+      }
+    })
+    expect(lines.tops).toBeGreaterThan(1) // the text wraps, so the clamp is exercised
+    expect(lines.cut).toBe(0)
+    const site = await card.getByText('example.com', { exact: true }).boundingBox()
+    expect(site?.y ?? 0).toBeGreaterThanOrEqual(lines.bottom - 1)
+  } finally {
+    await page.request.delete(`${boardApi(page)}/entries/${id}`)
+  }
+})

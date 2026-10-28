@@ -1463,6 +1463,16 @@ body {
 .toast-success {
   border-left-color: var(--success);
 }
+/* The board's entries could not be loaded yet (use-load-entries retries): a status over the canvas. */
+.board-load-retrying {
+  position: absolute;
+  top: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-chrome-overlay);
+  width: max-content;
+  max-width: calc(100% - var(--space-6));
+}
 
 /* ─── Share panel lists ────────────────────────────────────────────────────── */
 
