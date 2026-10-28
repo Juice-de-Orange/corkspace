@@ -46,8 +46,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@hono/node-server':
-        specifier: ^1.19.15
-        version: 1.19.15(hono@4.13.13)
+        specifier: ^2.1.5
+        version: 2.1.5(hono@4.13.13)
       '@node-rs/argon2':
         specifier: ^2.2.2
         version: 2.2.2
@@ -920,11 +920,11 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
-  '@hono/node-server@1.19.15':
-    resolution: {integrity: sha512-Za2ai6TLdKjUvnur+eenO6nuYYipVAEhyCAdaV8IRvmU9kK8crOZUSYvIXn72E4f8fJqyAbpcJuTsYYmZp9Deg==}
-    engines: {node: '>=18.14.1'}
+  '@hono/node-server@2.1.5':
+    resolution: {integrity: sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q==}
+    engines: {node: '>=20'}
     peerDependencies:
-      hono: ^4
+      hono: ^4 || ^5.0.0-0
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -4314,7 +4314,7 @@ snapshots:
       protobufjs: 7.6.6
       yargs: 17.7.3
 
-  '@hono/node-server@1.19.15(hono@4.13.13)':
+  '@hono/node-server@2.1.5(hono@4.13.13)':
     dependencies:
       hono: 4.13.13
 
