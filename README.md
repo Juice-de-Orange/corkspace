@@ -84,8 +84,8 @@ https://corkspace.example.com` writes the right addresses), backups and upgrades
   remembers where you were.
 - **Entries:** sticky notes in six colours, rich documents (TipTap: headings, lists, quotes,
   code blocks, links, `==highlight==`, lined or grid paper), checklists, images (incl. animated
-  GIFs) and link cards (with a fetched title, description and image when an administrator adds
-  them, see [Known limitations](#known-limitations)); YouTube and Vimeo embeds in sandboxed frames.
+  GIFs) and link cards (with a fetched title, description and image); YouTube and Vimeo embeds in
+  sandboxed frames.
 - **Red threads** between entries with labels and arrowheads, **freehand drawing** (pen,
   marker, lines, arrows, rectangles, eraser) on entries and the board, **frames** that move
   their contents, **teleports** to bookmark places, **tags** with styling rules.
@@ -181,9 +181,9 @@ upgrade procedure in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) were not part of t
   - *Feedback:* new feedback is not announced; administrators look under **Admin → Feedback**.
 - **No real-time collaboration.** Two people editing the same board work last-write-wins per
   entry; changes by others appear on reload.
-- **Link previews only for administrators.** Fetching a page's title, description and image for a
-  link card is limited to the instance administrator; for everyone else the card shows the plain
-  link.
+- **Link previews are rate-limited.** Anyone who may edit a board gets a fetched title, description
+  and image for link cards, up to 30 previews per user and minute (each one is an outbound request
+  from the server).
 - Touch e2e tests are not automated yet ([#11](https://github.com/Juice-de-Orange/corkspace/issues/11)); the release checks ran in Chromium only, see
   [Status](#status).
 
