@@ -84,8 +84,18 @@ jobs:
           fi
           echo "POSTGRES_PASSWORD=ci-only-password" >> infra/.env
           docker compose -f infra/docker-compose.yml --env-file infra/.env config -q
+      - name: Make the checkout look like a clone under umask 077 (#64)
+        run: chmod -R go-rwx .
       - name: Images build
         run: docker compose -f infra/docker-compose.yml --env-file infra/.env build
+      - name: The non-root web image still reads its config and bundle
+        run: |
+          image=$(docker compose -f infra/docker-compose.yml --env-file infra/.env config --images | grep corkspace-web)
+          docker run -d --name web-umask -p 8080:8080 "$image"
+          for path in / /textures/cork.webp; do
+            curl -fsS --retry 10 --retry-delay 1 --retry-all-errors -o /dev/null "http://localhost:8080$path" \
+              || { docker logs web-umask; exit 1; }
+          done
       - name: Demo compose file is valid and refuses to start without its secrets
         run: |
           if docker compose -f infra/docker-compose.demo.yml config -q 2>/dev/null; then
