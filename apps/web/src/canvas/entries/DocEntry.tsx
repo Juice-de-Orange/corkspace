@@ -281,10 +281,13 @@ function DocEditor({
  * back to the sanitized static preview.
  */
 export function DocEntry({ meta, innerRef }: { meta: EntryMeta; innerRef: Ref<HTMLDivElement> }) {
-  const editing = useValue(editingEntryIdAtom) === meta.id
+  const editRequested = useValue(editingEntryIdAtom) === meta.id
   const t = useT()
   const [doc, setDoc] = useState<Json>(EMPTY_DOC)
   const [loaded, setLoaded] = useState(() => recentlyCreatedIds.has(meta.id))
+  // The ✏️ button asks for the editor without knowing whether the content is there. Like a
+  // double-click, the ask is refused until it is: the content-wipe guard would drop what is typed.
+  const editing = editRequested && loaded
   const editingRef = useRef(editing)
   editingRef.current = editing
   const docRef = useRef(doc)
@@ -309,6 +312,12 @@ export function DocEntry({ meta, innerRef }: { meta: EntryMeta; innerRef: Ref<HT
       setLoaded(true)
     })
   }, [meta.id, contentRev])
+
+  useEffect(() => {
+    if (editRequested && !loaded) {
+      setEditing(null)
+    }
+  }, [editRequested, loaded])
 
   /** Persist `json` if it changed. Also used for the draft saved when the page is hidden. */
   function save(json: Json): void {
