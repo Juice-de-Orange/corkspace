@@ -12,7 +12,6 @@ import { boardsRoute } from './routes/boards'
 import { feedbackRoute } from './routes/feedback'
 import { healthRoute } from './routes/health'
 import { instanceRoute } from './routes/instance'
-import { linksRoute } from './routes/links'
 import { meRoute } from './routes/me'
 import { publicRoute } from './routes/public'
 import type { BoardAccess } from './services/board-access'
@@ -66,11 +65,10 @@ export function buildApp(deps: AppDeps) {
   app.route('/api/health', healthRoute(deps))
   app.route('/api/instance', instanceRoute(deps))
   app.route('/api/me', meRoute(deps))
-  app.route('/api/links', linksRoute())
   // Serve asset bytes by global id (board resolved from the asset). Uploads live under a board.
   app.route('/api/assets', assetsServeRoute(deps))
   // Board management + all board-scoped content (entries/connections/strokes/tags/frames/
-  // teleports/dashboard/assets), each behind boardContext.
+  // teleports/dashboard/assets/link previews), each behind boardContext.
   app.route('/api/boards', boardsRoute(deps))
   // External, account-less read tree (GET-only): no mutation handler exists here by construction.
   app.route('/api/public', publicRoute(deps))
