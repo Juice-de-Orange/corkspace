@@ -26,7 +26,7 @@ Each of these is refused by the server — not only hidden in the UI — with HT
 | Sign-in with e-mail and password, sign-up, password reset and change, e-mail change and verification, the Better Auth admin endpoints | There are no accounts in a demo; guests are created by `POST /api/demo/session`. Only `GET /api/auth/get-session` and `POST /api/auth/sign-out` are allowed. |
 | The admin area (`/api/admin/*`) and feedback (`/api/feedback`) | Nobody administrates a demo; feedback would store visitor content for someone else to read. |
 | Image uploads and remote images (`POST /api/boards/:id/assets`, `…/assets/from-url`) | Visitors could store arbitrary files; remote downloads are a server-side request surface. |
-| Link previews (`/api/links/*`) | A server-side fetch of a URL the visitor chooses (SSRF surface). Link cards still work with the URL and a title typed by hand. |
+| Link previews (`…/links/preview`) | A server-side fetch of a URL the visitor chooses (SSRF surface). Link cards still work with the URL and a title typed by hand. |
 | Invitations (`…/members`) and read links (`…/shares`) | Both would show one visitor's content to someone else. |
 
 In addition, `docker-compose.demo.yml` puts the api on a network **without internet access**, so

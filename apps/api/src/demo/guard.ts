@@ -23,12 +23,12 @@ const DB_SIZE_TTL_MS = 30_000
  *  password reset and change, e-mail, the admin plugin) is refused. */
 const AUTH_ALLOWED = new Set(['GET /api/auth/get-session', 'POST /api/auth/sign-out'])
 
-/** Off for every method: the admin surface, feedback (stored for admins), link previews (server-
- *  side fetch of a visitor's URL). */
-const DISABLED = /^\/api\/(?:admin|feedback|links)(?:\/|$)/
-/** Off for writes: uploads and remote-image downloads (`assets`), invitations (`members`) and
- *  read links (`shares`) — the last two would show a visitor's content to someone else. */
-const BOARD_WRITES_DISABLED = /^\/api\/boards\/[^/]+\/(?:assets|members|shares)(?:\/|$)/
+/** Off for every method: the admin surface and feedback (stored for admins). */
+const DISABLED = /^\/api\/(?:admin|feedback)(?:\/|$)/
+/** Off for writes: uploads and remote-image downloads (`assets`), link previews (`links`, a
+ *  server-side fetch of a visitor's URL), invitations (`members`) and read links (`shares`) — the
+ *  last two would show a visitor's content to someone else. */
+const BOARD_WRITES_DISABLED = /^\/api\/boards\/[^/]+\/(?:assets|links|members|shares)(?:\/|$)/
 /** A POST that only reads: the batch content load of the entries in view. A full demo still
  *  shows its boards. */
 const BATCH_READ = /^\/api\/boards\/[^/]+\/entries\/content$/

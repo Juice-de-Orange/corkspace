@@ -251,7 +251,7 @@ describe('demo mode: disabled features answer DEMO_DISABLED', () => {
     ['POST', '/api/auth/admin/create-user', { email: 'z@example.com', password: 'p', name: 'Z' }],
     ['GET', '/api/admin/users'],
     ['POST', '/api/feedback', { message: 'hi' }],
-    ['POST', '/api/links/preview', { url: 'http://169.254.169.254/' }],
+    ['POST', '/links/preview', { url: 'http://169.254.169.254/' }],
     ['POST', '/assets/from-url', { url: 'http://169.254.169.254/latest/meta-data/' }],
     ['POST', '/members', { email: adminCreds.email, role: 'editor' }],
     ['POST', '/shares', {}],

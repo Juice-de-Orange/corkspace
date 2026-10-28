@@ -26,6 +26,7 @@ import { connectionsRoute } from './connections'
 import { dashboardRoute } from './dashboard'
 import { entriesRoute } from './entries'
 import { framesRoute } from './frames'
+import { linksRoute } from './links'
 import { strokesRoute } from './strokes'
 import { tagsRoute } from './tags'
 import { teleportsRoute } from './teleports'
@@ -131,6 +132,7 @@ export function boardsRoute(deps: AppDeps) {
   scoped.route('/teleports', teleportsRoute(deps))
   scoped.route('/dashboard', dashboardRoute(deps))
   scoped.route('/assets', assetsUploadRoute(deps))
+  scoped.route('/links', linksRoute())
 
   r.route('/:boardId', scoped)
   return r
