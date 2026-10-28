@@ -40,6 +40,15 @@ export function bumpEntryContentRev(id: string): void {
  */
 export const recentlyCreatedIds = new Set<string>()
 
+/**
+ * Last-known text per sticky id (+ the content revision it was fetched at). A sticky unmounts and
+ * remounts whenever it crosses the LOD block↔full boundary while zooming; seeding state from this
+ * cache makes the remount show its text INSTANTLY (no fetch, no blank flash). A newer revision
+ * (version restore) bypasses the cache and refetches. Survives remounts by design; cleared on a
+ * board switch (`resetBoardClientState`).
+ */
+export const stickyTextCache = new Map<string, { rev: number; text: string }>()
+
 /** The spatial index mirrors `entriesAtom` and feeds viewport culling + collision. */
 export const spatialIndex = new SpatialIndex()
 

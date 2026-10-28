@@ -2,13 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { history } from '../../history/history'
 import {
   connectDragAtom,
+  connectToolAtom,
   pendingConnectFromAtom,
   selectedConnectionIdAtom,
 } from './connection-store'
 import { editingEntryIdAtom } from './editor-state'
-import { recentlyCreatedIds } from './entry-store'
+import {
+  bumpEntryContentRev,
+  entryContentRevAtom,
+  recentlyCreatedIds,
+  stickyTextCache,
+} from './entry-store'
 import { resetBoardClientState } from './reset-board'
 import { clipboardIdAtom, selectedEntryIdAtom } from './selection-state'
+import { drawToolAtom } from './stroke-store'
 
 describe('resetBoardClientState', () => {
   it('clears the undo history so a board/account switch cannot replay the previous tenant’s commands', async () => {
@@ -48,5 +55,25 @@ describe('resetBoardClientState', () => {
     expect(pendingConnectFromAtom.value).toBeNull()
     expect(connectDragAtom.value).toBeNull()
     expect(recentlyCreatedIds.size).toBe(0)
+  })
+
+  it('disarms the connect and draw tools so they do not carry over to the next board (#8)', () => {
+    connectToolAtom.set(true)
+    drawToolAtom.set('pen')
+
+    resetBoardClientState()
+
+    expect(connectToolAtom.value).toBe(false)
+    expect(drawToolAtom.value).toBeNull()
+  })
+
+  it('clears the per-entry content caches instead of growing them for the whole session (#8)', () => {
+    stickyTextCache.set('foreign-sticky', { rev: 0, text: 'from the previous board' })
+    bumpEntryContentRev('foreign-sticky')
+
+    resetBoardClientState()
+
+    expect(stickyTextCache.size).toBe(0)
+    expect(entryContentRevAtom.value.size).toBe(0)
   })
 })
