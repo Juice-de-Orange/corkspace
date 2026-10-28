@@ -37,7 +37,7 @@ export function Shell() {
 
   const { ready, error } = useLoadBoard(boardId ? { kind: 'board', boardId } : null)
   useCameraPersistence()
-  useLoadEntries(ready)
+  const loadRetrying = useLoadEntries(ready)
 
   if (!boardId) {
     return <Navigate to="/" replace />
@@ -167,6 +167,11 @@ export function Shell() {
       <AppHeader left={left} right={right} />
       <main className="relative flex-1">
         {error ? <div className="empty-state">{t('shell.boardNotFound')}</div> : <CanvasRoot />}
+        {loadRetrying && (
+          <div className="toast toast-error board-load-retrying" role="status">
+            {t('shell.boardLoadRetrying')}
+          </div>
+        )}
         {shareOpen && boardId && (
           <SharePanel boardId={boardId} onClose={() => setShareOpen(false)} />
         )}

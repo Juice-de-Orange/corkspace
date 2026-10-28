@@ -15,7 +15,7 @@ export function PublicBoard() {
   const lang = useValue(langAtom)
   const t = useT()
   const { ready, error } = useLoadBoard(token ? { kind: 'token', token } : null)
-  useLoadEntries(ready)
+  const loadRetrying = useLoadEntries(ready)
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
@@ -37,6 +37,11 @@ export function PublicBoard() {
       />
       <main className="relative flex-1">
         {error ? <div className="empty-state">{t('shell.linkInvalid')}</div> : <CanvasRoot />}
+        {loadRetrying && (
+          <div className="toast toast-error board-load-retrying" role="status">
+            {t('shell.boardLoadRetrying')}
+          </div>
+        )}
       </main>
     </div>
   )
