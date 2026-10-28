@@ -26,7 +26,7 @@ import {
   connectToolAtom,
   pendingConnectFromAtom,
 } from '../state/connection-store'
-import { entriesAtom } from '../state/entry-store'
+import { entriesAtom, entriesLoadedAtom } from '../state/entry-store'
 import {
   DRAW_COLORS,
   type DrawTool,
@@ -114,6 +114,7 @@ export function CreateToolbar() {
   const penColor = useValue(penColorAtom)
   const penWidth = useValue(penWidthAtom)
   const access = useValue(boardAccessAtom)
+  const entriesLoaded = useValue(entriesLoadedAtom)
   const narrow = useMediaQuery('(max-width: 760px)')
   const { prompt } = useDialogs()
   const t = useT()
@@ -168,8 +169,9 @@ export function CreateToolbar() {
   const btn = 'btn btn-ghost'
   const iconBtn = 'btn btn-ghost btn-icon'
 
-  // Read-only mode (viewer / external link): no create / draw controls.
-  if (!access?.canEdit) {
+  // Read-only mode (viewer / external link): no create / draw controls. Nor before the board's
+  // entries have loaded: a new entry would get z-index 1 and sit under all of them.
+  if (!access?.canEdit || !entriesLoaded) {
     return null
   }
 

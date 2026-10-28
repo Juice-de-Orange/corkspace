@@ -11,6 +11,7 @@ import {
 } from './connection-store'
 import { editingEntryIdAtom } from './editor-state'
 import {
+  entriesLoadedAtom,
   entryContentRevAtom,
   loadEntries,
   recentlyCreatedIds,
@@ -58,6 +59,7 @@ export function resetBoardClientState(): void {
   connectSourceAnchorAtom.set(null)
   liveStrokeAtom.set(null)
   loadEntries([])
+  entriesLoadedAtom.set(false) // the next board's entries are not here yet
   loadStrokes([])
   loadConnections([])
   loadFrames([])
