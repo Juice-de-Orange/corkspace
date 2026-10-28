@@ -14,18 +14,6 @@ allowBuilds:
   ssh2: false
   core-js: false
 
-# `pnpm audit` ignores — the ONLY remaining high advisories are undici <6.24/6.27 pulled by
-# @testcontainers/postgresql (integration-test infra only). undici is at 5.29.0; the fix is a
-# breaking 6.x bump on test infra, and it is NEVER in the pruned prod image. Non-exploitable here
-# (testcontainers talks to the LOCAL trusted Docker daemon, not attacker input). See docs/adr/.
-auditConfig:
-  ignoreGhsas:
-    - GHSA-v9p9-hfj2-hcw8
-    - GHSA-vrm6-8vpv-qv8q
-    - GHSA-vxpw-j846-p89q
-    # @fastify/busboy <3.2.1 (DoS via multipart header), same chain: testcontainers > undici 5 > busboy.
-    - GHSA-x8mw-p69m-v3mx
-
 # Minimum versions for transitive dependencies with known advisories (pnpm audit).
 overrides:
   "drizzle-orm": ">=0.45.2"
@@ -38,6 +26,10 @@ overrides:
   # Scoped to the parents: a plain `esbuild@<range>` selector also rewrites bundle-require's peer range.
   "@esbuild-kit/core-utils>esbuild": "^0.25.0"
   "tsup>esbuild": "^0.28.1"
+  # GHSA-834v-8h66-3h79 (high): happy-dom is a peer of vitest and of @tiptap/html (its Node build renders
+  # with it; browsers use the DOM). @tiptap/html asks for ^20.8.9; the 21.0 major only turns CSS and
+  # iframe loading off by default.
+  "happy-dom@<21.0.4": "^21.0.4"
   "linkify-it@<5.0.2": "^5.0.2"
   "nanoid@<3.3.18": "^3.3.18"
   "postcss@<8.5.18": "^8.5.18"
