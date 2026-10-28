@@ -127,9 +127,13 @@ export function LinkCard({ meta, innerRef }: { meta: EntryMeta; innerRef: Ref<HT
               <div
                 style={{
                   fontSize: 20,
+                  // Two whole lines, then an ellipsis: a fixed max height cut the second line in half.
+                  lineHeight: '22px',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
                   color: 'var(--panel-muted)',
                   marginTop: 3,
-                  maxHeight: 44,
                   overflow: 'hidden',
                 }}
               >
