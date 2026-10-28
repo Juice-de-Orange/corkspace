@@ -127,11 +127,17 @@ test('entries in view load their content on board open, without moving the camer
     await first.dblclick()
     await expect(first.locator('textarea')).toHaveCount(0)
   }
+  // The ✏️ button (the touch path to the editor) is refused the same way (#71): an editor opened
+  // now would start empty and stay open with nothing in it after the content has arrived.
+  await first.click()
+  await page.locator('[data-edit-entry]').click()
+  await expect(first.locator('textarea')).toHaveCount(0)
 
   // 3. Once the server answers again, the content arrives on its own — still without a camera move.
   blocked = false
   await expectAllContent()
   await expect(first).not.toContainText('Lädt…')
+  await expect(first.locator('textarea')).toHaveCount(0)
 
   await page.unroute(isContentLoad)
   for (const id of [...stickies.map((s) => s.id), checklistId]) {
