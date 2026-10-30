@@ -25,7 +25,7 @@
     "@testcontainers/postgresql": "^12.2.1",
     "@types/node": "^22.10.0",
     "@types/pg": "^8.23.1",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.5",
     "drizzle-kit": "^0.31.11",
     "vitest": "^4.1.11"
   }
