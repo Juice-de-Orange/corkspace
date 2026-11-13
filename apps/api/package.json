@@ -19,7 +19,7 @@
     "@corkspace/shared": "workspace:*",
     "better-auth": "^1.7.12",
     "drizzle-orm": "^0.45.4",
-    "hono": "^4.13.13",
+    "hono": "^4.13.16",
     "tsx": "^4.23.15",
     "zod": "^4.6.7"
   },
