@@ -22,7 +22,7 @@
     "tsx": "^4.23.15"
   },
   "devDependencies": {
-    "@testcontainers/postgresql": "^12.2.1",
+    "@testcontainers/postgresql": "^12.2.2",
     "@types/node": "^22.10.0",
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^4.1.11",
